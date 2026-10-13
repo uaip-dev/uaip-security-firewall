@@ -190,14 +190,44 @@ class Uaip_Sfw_Admin {
 		/** @var Uaip_Sfw_WAF $waf */
 		$waf = $this->plugin->module( 'waf' );
 
-		if ( isset( $_POST['uaip_sfw_fw_save'] ) && check_admin_referer( 'uaip_sfw_firewall' ) ) {
+		if ( isset( $_POST['uaip_sfw_fw_save'] ) && check_admin_referer( 'uaip_sfw_firewall' ) && current_user_can( 'manage_options' ) ) {
+			$text = array();
+			foreach ( array( 'waf_allowlist_ips', 'waf_blocklist_ips', 'trusted_proxies', 'waf_exceptions' ) as $key ) {
+				$text[ $key ] = isset( $_POST[ $key ] ) ? sanitize_textarea_field( wp_unslash( $_POST[ $key ] ) ) : '';
+			}
+			$source  = isset( $_POST['ip_source'] ) ? sanitize_key( wp_unslash( $_POST['ip_source'] ) ) : 'remote_addr';
+			$invalid = array();
+			$lists   = array();
+			foreach ( array( 'waf_allowlist_ips', 'waf_blocklist_ips', 'trusted_proxies' ) as $key ) {
+				$parsed        = Uaip_Sfw_IP::parse_list( $text[ $key ] );
+				$lists[ $key ] = implode( "\n", $parsed['valid'] );
+				$invalid       = array_merge( $invalid, $parsed['invalid'] );
+			}
+			$exceptions = Uaip_Sfw_WAF_Engine::parse_exceptions( $text['waf_exceptions'] );
+			$invalid    = array_merge( $invalid, $exceptions['invalid'] );
+			$ex_lines   = array();
+			foreach ( $exceptions['valid'] as $ex ) {
+				$ex_lines[] = trim( $ex['rule'] . ' ' . $ex['path'] );
+			}
 			Uaip_Sfw_Settings::update( array(
-				'waf_enabled'       => ! empty( $_POST['waf_enabled'] ),
-				'waf_action'        => ( isset( $_POST['waf_action'] ) && 'learn' === $_POST['waf_action'] ) ? 'learn' : 'block',
-				'waf_threshold'     => isset( $_POST['waf_threshold'] ) ? max( 1, absint( wp_unslash( $_POST['waf_threshold'] ) ) ) : 5,
-				'rate_limit_rpm'    => isset( $_POST['rate_limit_rpm'] ) ? max( 0, absint( wp_unslash( $_POST['rate_limit_rpm'] ) ) ) : 240,
-				'waf_allowlist_ips' => isset( $_POST['waf_allowlist_ips'] ) ? sanitize_textarea_field( wp_unslash( $_POST['waf_allowlist_ips'] ) ) : '',
+				'waf_enabled'         => ! empty( $_POST['waf_enabled'] ),
+				'waf_action'          => ( isset( $_POST['waf_action'] ) && 'learn' === sanitize_key( wp_unslash( $_POST['waf_action'] ) ) ) ? 'learn' : 'block',
+				'waf_threshold'       => isset( $_POST['waf_threshold'] ) ? min( 50, max( 1, absint( wp_unslash( $_POST['waf_threshold'] ) ) ) ) : 5,
+				'rate_limit_rpm'      => isset( $_POST['rate_limit_rpm'] ) ? max( 0, absint( wp_unslash( $_POST['rate_limit_rpm'] ) ) ) : 240,
+				'waf_inspect_trusted' => ! empty( $_POST['waf_inspect_trusted'] ),
+				'ip_source'           => in_array( $source, Uaip_Sfw_IP::SOURCES, true ) ? $source : 'remote_addr',
+				'waf_allowlist_ips'   => $lists['waf_allowlist_ips'],
+				'waf_blocklist_ips'   => $lists['waf_blocklist_ips'],
+				'trusted_proxies'     => $lists['trusted_proxies'],
+				'waf_exceptions'      => implode( "\n", $ex_lines ),
 			) );
+			if ( $invalid ) {
+				$codes = array();
+				foreach ( array_slice( $invalid, 0, 20 ) as $bad ) {
+					$codes[] = '<code>' . esc_html( $bad ) . '</code>';
+				}
+				echo '<div class="notice notice-warning"><p>' . esc_html__( 'These entries were not valid and were left out:', 'uaip-security-firewall' ) . ' ' . wp_kses( implode( ' ', $codes ), array( 'code' => array() ) ) . '</p></div>';
+			}
 			// Keep the extended-protection config in sync (Pro-only feature).
 			if ( class_exists( 'Uaip_Sfw_WAF_Installer' ) && Uaip_Sfw_WAF_Installer::is_installed() ) {
 				Uaip_Sfw_WAF_Installer::write_config();
@@ -270,9 +300,44 @@ class Uaip_Sfw_Admin {
 		echo '<div class="uaip-sfw-field"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Rate limit (requests/min per IP)', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'Throttle abusive clients and bots. 0 disables rate limiting.', 'uaip-security-firewall' ) . '</p></div>';
 		printf( '<input type="number" name="rate_limit_rpm" min="0" max="100000" value="%d" class="small-text" /></div>', (int) $s['rate_limit_rpm'] );
 
+		// Inspect trusted users.
+		$this->switch_field( 'waf_inspect_trusted', __( 'Also inspect editors and administrators', 'uaip-security-firewall' ), __( 'Off by default: users who may post unfiltered HTML often send code that looks like an attack. Everyone else is always inspected, including AJAX, REST API and form submissions.', 'uaip-security-firewall' ), $s['waf_inspect_trusted'] );
+
+		// Visitor IP source.
+		$sources = array(
+			'remote_addr'     => __( 'Direct connection (REMOTE_ADDR)', 'uaip-security-firewall' ),
+			'cloudflare'      => __( 'Cloudflare (CF-Connecting-IP, only from Cloudflare)', 'uaip-security-firewall' ),
+			'x_forwarded_for' => __( 'Reverse proxy or load balancer (X-Forwarded-For)', 'uaip-security-firewall' ),
+			'x_real_ip'       => __( 'Reverse proxy (X-Real-IP)', 'uaip-security-firewall' ),
+		);
+		echo '<div class="uaip-sfw-field" style="align-items:flex-start;"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Visitor IP source', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'Where the real visitor address comes from. If your site is behind Cloudflare or a proxy and this is wrong, every visitor appears to share one IP, and blocking or rate limiting one blocks them all.', 'uaip-security-firewall' ) . '</p>';
+		$hint = $this->ip_source_hint();
+		if ( '' !== $hint ) {
+			echo '<p class="uaip-sfw-hint"><span class="dashicons dashicons-lightbulb"></span> ' . esc_html( $hint ) . '</p>';
+		}
+		echo '</div><div><select name="ip_source">';
+		foreach ( $sources as $value => $label ) {
+			printf( '<option value="%s" %s>%s</option>', esc_attr( $value ), selected( $s['ip_source'], $value, false ), esc_html( $label ) );
+		}
+		echo '</select>';
+		/* translators: %s: the visitor IP address the plugin currently sees */
+		echo '<p class="description">' . esc_html( sprintf( __( 'Your IP as seen now: %s', 'uaip-security-firewall' ), Uaip_Sfw_Settings::visitor_ip() ) ) . '</p></div></div>';
+
+		// Trusted proxies.
+		echo '<div class="uaip-sfw-field" style="align-items:flex-start;"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Trusted proxies', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'For the two reverse-proxy options: the IPs or ranges of your own proxies. Headers from anywhere else are ignored, so visitors cannot fake their address.', 'uaip-security-firewall' ) . '</p></div>';
+		printf( '<textarea name="trusted_proxies" rows="2" class="large-text code" placeholder="10.0.0.0/8">%s</textarea></div>', esc_textarea( $s['trusted_proxies'] ) );
+
 		// Allowlist.
-		echo '<div class="uaip-sfw-field" style="align-items:flex-start;"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'IP allowlist', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'These IPs bypass the firewall (one per line).', 'uaip-security-firewall' ) . '</p></div>';
+		echo '<div class="uaip-sfw-field" style="align-items:flex-start;"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'IP allowlist', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'These IPs or ranges bypass the firewall. One per line; CIDR ranges such as 192.0.2.0/24 work.', 'uaip-security-firewall' ) . '</p></div>';
 		printf( '<textarea name="waf_allowlist_ips" rows="3" class="large-text code" placeholder="203.0.113.5">%s</textarea></div>', esc_textarea( $s['waf_allowlist_ips'] ) );
+
+		// Blocklist.
+		echo '<div class="uaip-sfw-field" style="align-items:flex-start;"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'IP blocklist', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'These IPs or ranges are always blocked. The allowlist wins if an address is on both.', 'uaip-security-firewall' ) . '</p></div>';
+		printf( '<textarea name="waf_blocklist_ips" rows="3" class="large-text code" placeholder="198.51.100.0/24">%s</textarea></div>', esc_textarea( $s['waf_blocklist_ips'] ) );
+
+		// Rule exceptions.
+		echo '<div class="uaip-sfw-field" style="align-items:flex-start;"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Rule exceptions', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'Turn a rule off for a path when it blocks something legitimate. One per line: a rule ID (shown in the events table below) and an optional path prefix. Use * for every rule.', 'uaip-security-firewall' ) . '</p></div>';
+		printf( '<textarea name="waf_exceptions" rows="3" class="large-text code" placeholder="sfw-xss-003 /wp-json/contact-form-7/">%s</textarea></div>', esc_textarea( $s['waf_exceptions'] ) );
 
 		echo '<p>';
 		submit_button( __( 'Save firewall settings', 'uaip-security-firewall' ), 'primary', 'uaip_sfw_fw_save', false );
@@ -339,6 +404,30 @@ class Uaip_Sfw_Admin {
 		$this->render_geo_card();
 
 		echo '</div>';
+	}
+
+	/**
+	 * Suggest an IP source from what this request looks like.
+	 *
+	 * @return string Translated hint, or ''.
+	 */
+	private function ip_source_hint() {
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated by Uaip_Sfw_IP::valid().
+		$remote = Uaip_Sfw_IP::valid( isset( $_SERVER['REMOTE_ADDR'] ) ? wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '' );
+		$cf     = isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) && '' !== Uaip_Sfw_IP::valid( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
+		$xff    = ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+		$real   = ! empty( $_SERVER['HTTP_X_REAL_IP'] );
+		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$source = (string) Uaip_Sfw_Settings::get( 'ip_source', 'remote_addr' );
+
+		if ( $cf && Uaip_Sfw_IP::in_list( $remote, Uaip_Sfw_IP::CLOUDFLARE ) && 'cloudflare' !== $source ) {
+			return __( 'This request came through Cloudflare. Choose "Cloudflare" so the firewall sees real visitor IPs.', 'uaip-security-firewall' );
+		}
+		if ( ( $xff || $real ) && 'remote_addr' === $source ) {
+			/* translators: %s: proxy IP address */
+			return sprintf( __( 'This request came through a proxy at %s. If that is your own proxy or load balancer, choose a reverse-proxy option and add it to the trusted proxies.', 'uaip-security-firewall' ), $remote );
+		}
+		return '';
 	}
 
 	/**

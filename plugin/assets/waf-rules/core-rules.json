@@ -1,35 +1,42 @@
 {
-  "version": 1,
-  "updated": "2026-06-29",
+  "version": 2,
+  "updated": "2026-10-14",
   "threshold": 5,
   "rules": [
     {
       "id": "sfw-sqli-001", "class": "sqli", "severity": "critical", "score": 10,
       "msg": "SQLi: UNION SELECT",
       "targets": ["query","body","uri","cookies"],
-      "transform": ["urldecode","lowercase","remove_nulls","strip_comments"],
-      "pattern": "union\\s+(all\\s+)?select", "flags": "i"
+      "transform": ["urldecode","lowercase","remove_nulls","strip_comments","compress_whitespace"],
+      "pattern": "\\bunion(\\s+(all|distinct))?\\s+select\\b", "flags": "i"
     },
     {
       "id": "sfw-sqli-002", "class": "sqli", "severity": "critical", "score": 10,
-      "msg": "SQLi: boolean tautology (OR 1=1)",
-      "targets": ["query","body","uri"],
-      "transform": ["urldecode","lowercase","remove_nulls","compress_whitespace"],
-      "pattern": "\\b(or|and)\\b\\s+['\"]?\\d+['\"]?\\s*=\\s*['\"]?\\d+", "flags": "i"
+      "msg": "SQLi: boolean tautology (' OR 1=1)",
+      "targets": ["query","body","uri","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls","strip_comments","compress_whitespace"],
+      "pattern": "(['\")]\\s*(or|and)\\s+['\"]?\\d+['\"]?\\s*=\\s*['\"]?\\d+|^\\s*-?\\d+\\s+(or|and)\\s+\\d+\\s*=\\s*\\d+)", "flags": "i"
     },
     {
       "id": "sfw-sqli-003", "class": "sqli", "severity": "high", "score": 5,
-      "msg": "SQLi: stacked query / common functions",
-      "targets": ["query","body"],
-      "transform": ["urldecode","lowercase","remove_nulls","strip_comments"],
-      "pattern": "(sleep\\s*\\(|benchmark\\s*\\(|load_file\\s*\\(|into\\s+outfile|information_schema)", "flags": "i"
+      "msg": "SQLi: time-based / file / schema functions",
+      "targets": ["query","body","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls","strip_comments","compress_whitespace"],
+      "pattern": "(\\b(sleep|pg_sleep)\\s*\\(\\s*\\d+(\\.\\d+)?\\s*\\)|\\bbenchmark\\s*\\(\\s*\\d+\\s*,|waitfor\\s+delay\\s+'|\\bload_file\\s*\\(|\\binto\\s+(out|dump)file\\b|\\binformation_schema\\s*\\.|\\b(extractvalue|updatexml)\\s*\\()", "flags": "i"
     },
     {
       "id": "sfw-sqli-004", "class": "sqli", "severity": "medium", "score": 3,
-      "msg": "SQLi: SQL comment / terminator",
+      "msg": "SQLi: comment or terminator followed by a statement",
       "targets": ["query","body"],
-      "transform": ["urldecode","lowercase","remove_nulls"],
-      "pattern": "(--\\s|#|;)\\s*(drop|select|update|delete|insert)\\b", "flags": "i"
+      "transform": ["urldecode","lowercase","remove_nulls","compress_whitespace"],
+      "pattern": "(--\\s|#|;)\\s*(drop\\s+table|select\\s+[\\w*,\\s()]+\\s+from|update\\s+\\w+\\s+set|delete\\s+from|insert\\s+into)\\b", "flags": "i"
+    },
+    {
+      "id": "sfw-sqli-005", "class": "sqli", "severity": "critical", "score": 10,
+      "msg": "SQLi: stacked DROP / TRUNCATE",
+      "targets": ["query","body","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls","strip_comments","compress_whitespace"],
+      "pattern": "(;|--\\s|#)\\s*(drop\\s+(table|database)|truncate\\s+table)\\b", "flags": "i"
     },
     {
       "id": "sfw-xss-001", "class": "xss", "severity": "critical", "score": 10,
@@ -40,38 +47,45 @@
     },
     {
       "id": "sfw-xss-002", "class": "xss", "severity": "high", "score": 5,
-      "msg": "XSS: javascript: URI or event handler",
+      "msg": "XSS: javascript: URI",
       "targets": ["query","body","uri"],
-      "transform": ["urldecode","lowercase","remove_nulls","html_decode"],
-      "pattern": "(javascript:|on(error|load|click|mouseover|focus)\\s*=)", "flags": "i"
+      "transform": ["urldecode","lowercase","remove_nulls","html_decode","remove_whitespace"],
+      "pattern": "(^|[=(\"'>])javascript:", "flags": "i"
     },
     {
       "id": "sfw-xss-003", "class": "xss", "severity": "medium", "score": 3,
       "msg": "XSS: risky HTML element",
       "targets": ["query","body"],
       "transform": ["urldecode","lowercase","remove_nulls","html_decode"],
-      "pattern": "<(iframe|svg|img|object|embed|base)\\b", "flags": "i"
+      "pattern": "<(iframe|svg|img|object|embed|base|math|details|video|audio)\\b", "flags": "i"
+    },
+    {
+      "id": "sfw-xss-004", "class": "xss", "severity": "high", "score": 5,
+      "msg": "XSS: event handler in a tag or after a quote",
+      "targets": ["query","body","uri"],
+      "transform": ["urldecode","lowercase","remove_nulls","html_decode"],
+      "pattern": "(<[a-z][^>]*[\\s/\"']|[\"']\\s*)on(error|load|click|mouseover|mouseenter|focus|blur|toggle|animationstart|pointerover|begin|input|change)\\s*=", "flags": "i"
     },
     {
       "id": "sfw-rce-001", "class": "rce", "severity": "critical", "score": 10,
-      "msg": "RCE: PHP code execution functions",
+      "msg": "RCE: PHP command execution call",
       "targets": ["query","body","cookies"],
-      "transform": ["urldecode","lowercase","remove_nulls"],
-      "pattern": "\\b(system|exec|shell_exec|passthru|popen|proc_open|pcntl_exec)\\s*\\(", "flags": "i"
+      "transform": ["urldecode","lowercase","remove_nulls","compress_whitespace"],
+      "pattern": "\\b(system|exec|shell_exec|passthru|popen|proc_open|pcntl_exec)\\s*\\(\\s*['\"$\\x60]", "flags": "i"
     },
     {
       "id": "sfw-rce-002", "class": "rce", "severity": "critical", "score": 10,
-      "msg": "RCE: eval / assert / code-eval primitives",
+      "msg": "RCE: eval / assert with code or request data",
       "targets": ["query","body","cookies"],
-      "transform": ["urldecode","lowercase","remove_nulls"],
-      "pattern": "\\b(eval|assert|create_function|call_user_func(_array)?)\\s*\\(", "flags": "i"
+      "transform": ["urldecode","lowercase","remove_nulls","compress_whitespace"],
+      "pattern": "\\b(eval|assert|create_function|call_user_func(_array)?)\\s*\\(\\s*(['\"$\\x60]|base64_decode|gzinflate|gzuncompress|str_rot13|\\$_(get|post|request|cookie|server))", "flags": "i"
     },
     {
       "id": "sfw-rce-003", "class": "rce", "severity": "high", "score": 5,
-      "msg": "RCE: shell metacharacters with command",
+      "msg": "RCE: shell command chaining or substitution",
       "targets": ["query","body"],
-      "transform": ["urldecode","remove_nulls"],
-      "pattern": "[;|`]\\s*(cat|ls|id|whoami|uname|wget|curl|nc|bash|sh)\\b", "flags": "i"
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "([;|\\x60&]\\s*(cat\\s+/|ls\\s+(-[a-z]+\\s*)*/|id\\s*($|[;|&\\x60])|whoami\\b|uname\\s+-[a-z]|(wget|curl)\\s+(-[a-z]+\\s+)*(https?|ftp)://|nc\\s+(-[a-z]+\\s+)*[\\w.]+\\s+\\d+|(ba|z)?sh\\s+-[ci]\\b)|\\$\\(\\s*(cat|id|whoami|uname|wget|curl|ls)\\b)", "flags": "i"
     },
     {
       "id": "sfw-lfi-001", "class": "lfi", "severity": "critical", "score": 10,
@@ -82,45 +96,81 @@
     },
     {
       "id": "sfw-lfi-002", "class": "lfi", "severity": "high", "score": 5,
-      "msg": "LFI: sensitive file access",
+      "msg": "LFI: sensitive system file",
       "targets": ["query","body","uri"],
       "transform": ["urldecode","lowercase","remove_nulls"],
-      "pattern": "(/etc/passwd|/etc/shadow|/proc/self/environ|boot\\.ini|win\\.ini|wp-config\\.php)", "flags": "i"
+      "pattern": "(/etc/(passwd|shadow|hosts)\\b|/proc/self/(environ|cmdline|fd)|\\bboot\\.ini\\b|\\bwin\\.ini\\b)", "flags": "i"
+    },
+    {
+      "id": "sfw-lfi-003", "class": "lfi", "severity": "medium", "score": 3,
+      "msg": "LFI: wp-config.php as a parameter value",
+      "targets": ["query","body"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "^[./\\\\]*wp-config\\.php", "flags": "i"
+    },
+    {
+      "id": "sfw-lfi-004", "class": "lfi", "severity": "critical", "score": 10,
+      "msg": "Probe for a wp-config.php backup copy",
+      "targets": ["path"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "wp-config\\.php(\\.(bak|old|orig|save|swp|txt|dist)|~|\\.\\d+)$", "flags": "i"
     },
     {
       "id": "sfw-rfi-001", "class": "rfi", "severity": "high", "score": 5,
-      "msg": "RFI: remote include URL parameter",
+      "msg": "RFI: remote script URL as a parameter value",
       "targets": ["query","body"],
       "transform": ["urldecode","lowercase","remove_nulls"],
-      "pattern": "=\\s*(https?|ftp|php|data|expect)://", "flags": "i"
+      "pattern": "^(https?|ftp)://[^\\s?#]+\\.(txt|php\\d?|inc|phtml)\\?+$", "flags": "i"
     },
     {
       "id": "sfw-php-001", "class": "php_injection", "severity": "high", "score": 5,
-      "msg": "PHP: wrapper / object injection",
+      "msg": "PHP: stream wrapper or serialized object",
       "targets": ["query","body","cookies"],
       "transform": ["urldecode","lowercase","remove_nulls"],
-      "pattern": "(php://(filter|input)|phar://|zip://|O:\\d+:\")", "flags": "i"
+      "pattern": "((^|[^a-z])(php://(filter|input|stdin)|phar://|expect://|data://text/plain|zip://)|\\bo:\\d+:\"[a-z_\\\\][a-z0-9_\\\\]*\":\\d+:\\{)", "flags": "i"
     },
     {
-      "id": "sfw-upload-001", "class": "upload", "severity": "high", "score": 5,
-      "msg": "Upload: PHP payload signature in body",
+      "id": "sfw-upload-001", "class": "upload", "severity": "medium", "score": 3,
+      "msg": "Upload: PHP open tag in the request body",
       "targets": ["body"],
       "transform": ["urldecode","lowercase","remove_nulls"],
       "pattern": "<\\?php\\b", "flags": "i"
     },
     {
+      "id": "sfw-upload-002", "class": "upload", "severity": "critical", "score": 10,
+      "msg": "Upload: executable file name",
+      "targets": ["files"],
+      "transform": ["lowercase","remove_nulls"],
+      "pattern": "(\\.(php\\d?|phtml|phar|pht|phps|shtml|cgi|asp|aspx|jsp)(\\.|$)|^\\.ht(access|passwd)$|^\\.user\\.ini$)", "flags": "i"
+    },
+    {
+      "id": "sfw-log4j-001", "class": "rce", "severity": "critical", "score": 10,
+      "msg": "Log4Shell-style lookup (${jndi: ...})",
+      "targets": ["query","body","uri","headers","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "\\$\\{\\s*(jndi|env|sys|lower|upper|date|::-)\\s*:", "flags": "i"
+    },
+    {
+      "id": "sfw-shellshock-001", "class": "rce", "severity": "critical", "score": 10,
+      "msg": "Shellshock function definition in a header",
+      "targets": ["headers"],
+      "transform": ["remove_nulls"],
+      "pattern": "^\\s*\\(\\s*\\)\\s*\\{", "flags": ""
+    },
+    {
       "id": "sfw-scanner-001", "class": "scanner", "severity": "medium", "score": 5,
-      "msg": "Scanner: known security tool user-agent",
+      "msg": "Scanner: known attack tool user-agent",
       "targets": ["ua"],
       "transform": ["lowercase"],
-      "pattern": "(sqlmap|nikto|nmap|acunetix|nessus|masscan|wpscan|dirbuster|gobuster|hydra|havij|fimap)", "flags": "i"
+      "pattern": "(sqlmap|nikto|nmap scripting|acunetix|nessus|masscan|wpscan|dirbuster|gobuster|hydra|havij|fimap|nuclei)", "flags": "i"
     },
     {
       "id": "sfw-scanner-002", "class": "scanner", "severity": "low", "score": 3,
-      "msg": "Scanner: empty or suspicious user-agent on POST",
+      "methods": ["POST"],
+      "msg": "Scanner: empty or scripted user-agent on POST",
       "targets": ["ua"],
       "transform": ["lowercase"],
-      "pattern": "^(|-|python-requests|curl|libwww-perl|go-http-client)$", "flags": "i"
+      "pattern": "^(-?|python-requests/.*|curl/.*|libwww-perl/.*|go-http-client/.*)$", "flags": "i"
     },
     {
       "id": "sfw-traversal-encoded", "class": "lfi", "severity": "high", "score": 5,
@@ -131,7 +181,7 @@
     },
     {
       "id": "sfw-wp-001", "class": "wp", "severity": "medium", "score": 3,
-      "msg": "WordPress: user enumeration via author param",
+      "msg": "WordPress: user enumeration via author parameter",
       "targets": ["uri"],
       "transform": ["urldecode","lowercase"],
       "pattern": "[?&]author=\\d+", "flags": "i"

@@ -17,8 +17,12 @@
  *     "targets": ["query","body","uri"],
  *     "transform": ["urldecode","lowercase","remove_nulls"],
  *     "pattern": "union\\s+(all\\s+)?select",
- *     "flags": "i"
+ *     "flags": "i",
+ *     "methods": ["POST"]          (optional: only for these HTTP methods)
  *   }
+ *
+ * Exceptions switch rules off for a path prefix: array( array( 'rule' => 'sfw-xss-003',
+ * 'path' => '/wp-json/contact-form-7/' ) ). Rule "*" means every rule.
  *
  * @package UaipSecurityFirewall
  */
@@ -39,6 +43,9 @@ class Uaip_Sfw_WAF_Engine {
 
 	/** @var int Block when total score reaches this. */
 	private $threshold;
+
+	/** Longest value inspected per field (bytes); the rest is ignored. */
+	const MAX_VALUE_BYTES = 65536;
 
 	/**
 	 * @param int $threshold
@@ -81,14 +88,21 @@ class Uaip_Sfw_WAF_Engine {
 	 * Evaluate a request.
 	 *
 	 * @param Uaip_Sfw_WAF_Request $req
+	 * @param array                $exceptions Rule/path exceptions (see class docblock).
 	 * @return array{score:int,block:bool,matched:array,classes:array}
 	 */
-	public function evaluate( Uaip_Sfw_WAF_Request $req ) {
+	public function evaluate( Uaip_Sfw_WAF_Request $req, array $exceptions = array() ) {
 		$score   = 0;
 		$matched = array();
 		$classes = array();
 
 		foreach ( $this->rules as $rule ) {
+			if ( ! empty( $rule['methods'] ) && ! in_array( $req->method, array_map( 'strtoupper', (array) $rule['methods'] ), true ) ) {
+				continue;
+			}
+			if ( self::excepted( $rule['id'], $req->path, $exceptions ) ) {
+				continue;
+			}
 			$hit = $this->match_rule( $rule, $req );
 			if ( null === $hit ) {
 				continue;
@@ -117,6 +131,57 @@ class Uaip_Sfw_WAF_Engine {
 	}
 
 	/**
+	 * Whether an exception switches this rule off for this path.
+	 *
+	 * @param string $rule_id    Rule id.
+	 * @param string $path       Request path.
+	 * @param array  $exceptions Exceptions.
+	 * @return bool
+	 */
+	public static function excepted( $rule_id, $path, array $exceptions ) {
+		foreach ( $exceptions as $ex ) {
+			$rule = isset( $ex['rule'] ) ? (string) $ex['rule'] : '';
+			$pre  = isset( $ex['path'] ) ? (string) $ex['path'] : '';
+			if ( ( '*' === $rule || $rule === $rule_id ) && ( '' === $pre || 0 === strpos( $path, $pre ) ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Parse exception lines: "rule-id [/path/prefix]" per line, "#" comments.
+	 *
+	 * @param string $text Raw text.
+	 * @return array{valid:array,invalid:string[]}
+	 */
+	public static function parse_exceptions( $text ) {
+		$valid   = array();
+		$invalid = array();
+		foreach ( preg_split( '/[\r\n]+/', (string) $text ) as $line ) {
+			$line = trim( preg_replace( '/#.*$/', '', $line ) );
+			if ( '' === $line ) {
+				continue;
+			}
+			$parts = preg_split( '/\s+/', $line );
+			$rule  = $parts[0];
+			$path  = isset( $parts[1] ) ? $parts[1] : '';
+			if ( count( $parts ) > 2 || ! preg_match( '/^(\*|[a-z0-9][a-z0-9._-]{0,80})$/i', $rule ) || ( '' !== $path && '/' !== substr( $path, 0, 1 ) ) ) {
+				$invalid[] = $line;
+				continue;
+			}
+			$valid[] = array(
+				'rule' => strtolower( $rule ),
+				'path' => $path,
+			);
+		}
+		return array(
+			'valid'   => $valid,
+			'invalid' => $invalid,
+		);
+	}
+
+	/**
 	 * Match a single rule across its targets; returns a short matched sample
 	 * (truncated) or null.
 	 *
@@ -140,6 +205,9 @@ class Uaip_Sfw_WAF_Engine {
 
 		foreach ( $targets as $target ) {
 			foreach ( $req->target( $target ) as $value ) {
+				if ( strlen( $value ) > self::MAX_VALUE_BYTES ) {
+					$value = substr( $value, 0, self::MAX_VALUE_BYTES );
+				}
 				$normalized = $this->transform( $value, $transforms );
 				if ( 1 === @preg_match( $regex, $normalized ) ) {
 					return $this->sample( $value );
@@ -179,8 +247,9 @@ class Uaip_Sfw_WAF_Engine {
 					$value = html_entity_decode( $value, ENT_QUOTES | ENT_HTML5 );
 					break;
 				case 'strip_comments':
-					// Strip SQL/C style comments used to break up keywords.
-					$value = preg_replace( '#/\*.*?\*/#s', '', $value );
+					// SQL/C style comments used to break up keywords count as a space
+					// ("union/**/select" -> "union select").
+					$value = preg_replace( '#/\*.*?\*/#s', ' ', $value );
 					break;
 			}
 		}

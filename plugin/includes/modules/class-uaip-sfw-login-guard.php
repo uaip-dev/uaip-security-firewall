@@ -180,6 +180,6 @@ class Uaip_Sfw_Login_Guard {
 	}
 
 	private function client_ip() {
-		return isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		return Uaip_Sfw_Settings::visitor_ip();
 	}
 }

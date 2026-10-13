@@ -277,3 +277,16 @@
 .uaip-sfw-conn-grid .v { font-weight: 600; font-size: 14px; margin-top: 3px; word-break: break-all; }
 .uaip-sfw-conn-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
 .uaip-sfw-conn-actions form { margin: 0; }
+
+/* Firewall: visitor IP source suggestion */
+.uaip-sfw-hint {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-left: 3px solid #dba617;
+  background: #fcf9e8;
+  color: #1d2327;
+}
+.uaip-sfw-hint .dashicons {
+  color: #dba617;
+  vertical-align: text-bottom;
+}

@@ -26,7 +26,7 @@ class Uaip_Sfw_Audit_Log {
 			$this->record( 'login_success', array( 'user' => $login ) );
 			// Alert on administrator logins.
 			if ( $user instanceof WP_User && user_can( $user, 'manage_options' ) ) {
-				Uaip_Sfw_Notifier::admin_login( $user, isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '' );
+				Uaip_Sfw_Notifier::admin_login( $user, Uaip_Sfw_Settings::visitor_ip() );
 			}
 		}, 10, 2 );
 		add_action( 'activated_plugin', function ( $plugin ) { $this->record( 'plugin_activated', array( 'plugin' => $plugin ) ); } );
@@ -44,7 +44,7 @@ class Uaip_Sfw_Audit_Log {
 		$event = array(
 			'ts'   => time(),
 			'type' => $type,
-			'ip'   => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'ip'   => Uaip_Sfw_Settings::visitor_ip(),
 			'user' => get_current_user_id(),
 			'data' => $data,
 		);

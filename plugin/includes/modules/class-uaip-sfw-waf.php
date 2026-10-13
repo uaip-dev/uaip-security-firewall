@@ -4,13 +4,14 @@
  *
  * Evaluates each request through Uaip_Sfw_WAF_Engine (anomaly scoring) and blocks
  * when the score reaches the threshold. Supports:
+ *   - every entry point: front end, admin-ajax.php, admin-post.php, the REST API
+ *     (JSON bodies), XML-RPC, uploads; only trusted editors/admins are skipped
  *   - learning mode (detect + log, never block)
- *   - IP allowlist
+ *   - IP/CIDR allowlist and blocklist, and rule exceptions per path
+ *   - the real visitor IP behind Cloudflare / reverse proxies (Uaip_Sfw_IP)
+ *   - rate limiting without a database write on every request
  *   - fail-open safety (a WAF error must never take the site down)
  *   - per-class block statistics for the Firewall dashboard
- *
- * Runs in 'plugin' mode by default; 'extended' mode (auto_prepend) is the
- * Phase-1+ deliverable that loads this before WordPress.
  *
  * @package UaipSecurityFirewall
  */
@@ -45,34 +46,56 @@ class Uaip_Sfw_WAF {
 	 * so the firewall can never break the site.
 	 */
 	public function inspect_request() {
-		// Skip the admin area: logged-in admins legitimately submit content
-		// (posts, settings, code) that can resemble payloads. Front-end — the
-		// main attack surface for these signatures — is always inspected.
-		if ( is_admin() ) {
+		if ( ( defined( 'WP_CLI' ) && WP_CLI ) || 'cli' === PHP_SAPI ) {
 			return;
 		}
 		try {
-			$req = Uaip_Sfw_WAF_Request::from_globals();
+			// Editors and admins (unfiltered_html) legitimately post HTML, scripts
+			// and code, so they are skipped unless the owner asks otherwise.
+			// Everyone else is inspected everywhere, including wp-admin,
+			// admin-ajax.php and admin-post.php, which anonymous visitors can reach.
+			if ( ! Uaip_Sfw_Settings::get( 'waf_inspect_trusted' ) && function_exists( 'is_user_logged_in' ) && is_user_logged_in() && current_user_can( 'unfiltered_html' ) ) {
+				return;
+			}
 
-			if ( $this->is_allowlisted( $req->ip ) ) {
+			$proxies = Uaip_Sfw_IP::parse_list( (string) Uaip_Sfw_Settings::get( 'trusted_proxies', '' ) );
+			$req     = Uaip_Sfw_WAF_Request::from_globals( (string) Uaip_Sfw_Settings::get( 'ip_source', 'remote_addr' ), $proxies['valid'] );
+			$learning = 'learn' === Uaip_Sfw_Settings::get( 'waf_action', 'block' );
+
+			if ( $this->in_ip_list( $req->ip, 'waf_allowlist_ips' ) ) {
+				return;
+			}
+			if ( $this->in_ip_list( $req->ip, 'waf_blocklist_ips' ) ) {
+				$verdict = array(
+					'score'   => 0,
+					'block'   => true,
+					'classes' => array( 'blocklist' => 0 ),
+					'matched' => array(
+						array( 'id' => 'ip-blocklist', 'class' => 'blocklist', 'msg' => 'IP address is on the blocklist', 'severity' => 'critical', 'score' => 0, 'sample' => '' ),
+					),
+				);
+				$this->record( $req, $verdict, $learning ? 'detect' : 'block' );
+				if ( ! $learning ) {
+					$this->block( $req, $verdict );
+				}
 				return;
 			}
 
 			// Rate limiting / bot throttling.
-			if ( $this->over_rate_limit( $req->ip ) ) {
+			if ( $this->over_rate_limit( $req ) ) {
 				$this->record_rate( $req );
-				if ( 'learn' !== Uaip_Sfw_Settings::get( 'waf_action', 'block' ) ) {
+				if ( ! $learning ) {
 					$this->block_rate();
 				}
 			}
 
-			$verdict = $this->engine()->evaluate( $req );
+			$exceptions = Uaip_Sfw_WAF_Engine::parse_exceptions( (string) Uaip_Sfw_Settings::get( 'waf_exceptions', '' ) );
+			$verdict    = $this->engine()->evaluate( $req, $exceptions['valid'] );
 			if ( empty( $verdict['matched'] ) ) {
 				return;
 			}
 
-			$learning = 'learn' === Uaip_Sfw_Settings::get( 'waf_action', 'block' );
-			$action   = ( $verdict['block'] && ! $learning ) ? 'block' : 'detect';
+			$action = ( $verdict['block'] && ! $learning ) ? 'block' : 'detect';
 
 			$this->record( $req, $verdict, $action );
 
@@ -122,8 +145,19 @@ class Uaip_Sfw_WAF {
 			$recent = (int) get_transient( 'uaip_sfw_blocks_15m' ) + 1;
 			set_transient( 'uaip_sfw_blocks_15m', $recent, 15 * MINUTE_IN_SECONDS );
 			// Surge alert when blocks cross a threshold (throttled inside notifier).
+			// The email is translated, so send it once translations can load
+			// (the firewall itself runs before init).
 			if ( $recent >= 25 ) {
-				Uaip_Sfw_Notifier::attack_surge( $recent );
+				if ( did_action( 'init' ) ) {
+					Uaip_Sfw_Notifier::attack_surge( $recent );
+				} else {
+					add_action(
+						'init',
+						static function () use ( $recent ) {
+							Uaip_Sfw_Notifier::attack_surge( $recent );
+						}
+					);
+				}
 			}
 		}
 
@@ -200,22 +234,57 @@ class Uaip_Sfw_WAF {
 	}
 
 	/**
-	 * Per-IP request rate limiter (sliding 60-second window).
+	 * Per-IP request rate limiter (fixed 60-second window).
 	 *
-	 * @param string $ip
+	 * Counters live in a persistent object cache or APCu when the host has one.
+	 * Without either, only requests that are worth throttling (POSTs, login,
+	 * XML-RPC, REST and AJAX calls) are counted, in transients, so ordinary page
+	 * views never cause a database write.
+	 *
+	 * @param Uaip_Sfw_WAF_Request $req
 	 * @return bool True when the IP is over the limit.
 	 */
-	private function over_rate_limit( $ip ) {
+	private function over_rate_limit( $req ) {
 		$rpm = (int) Uaip_Sfw_Settings::get( 'rate_limit_rpm', 240 );
 		// The Settings-page toggle is the master switch; rate_limit_rpm (set on
 		// the Firewall page) is the threshold. Either being off disables it.
-		if ( ! Uaip_Sfw_Settings::get( 'rate_limit_enabled' ) || $rpm <= 0 || '' === $ip ) {
+		if ( ! Uaip_Sfw_Settings::get( 'rate_limit_enabled' ) || $rpm <= 0 || '' === $req->ip ) {
 			return false;
 		}
-		$key   = 'uaip_sfw_rl_' . md5( $ip ) . '_' . floor( time() / 60 );
+		$key = 'uaip_sfw_rl_' . md5( $req->ip ) . '_' . (int) floor( time() / 60 );
+
+		if ( wp_using_ext_object_cache() ) {
+			if ( false === wp_cache_add( $key, 0, 'uaip_sfw', 70 ) && false === wp_cache_get( $key, 'uaip_sfw' ) ) {
+				return false;
+			}
+			$count = wp_cache_incr( $key, 1, 'uaip_sfw' );
+			return false !== $count && $count > $rpm;
+		}
+		if ( function_exists( 'apcu_inc' ) && function_exists( 'apcu_enabled' ) && apcu_enabled() ) {
+			apcu_add( $key, 0, 70 );
+			$count = apcu_inc( $key );
+			return false !== $count && $count > $rpm;
+		}
+		if ( ! $this->is_sensitive( $req ) ) {
+			return false;
+		}
 		$count = (int) get_transient( $key ) + 1;
 		set_transient( $key, $count, 70 );
 		return $count > $rpm;
+	}
+
+	/**
+	 * Requests worth rate limiting when counting costs a database write.
+	 *
+	 * @param Uaip_Sfw_WAF_Request $req
+	 * @return bool
+	 */
+	private function is_sensitive( $req ) {
+		if ( 'GET' !== $req->method && 'HEAD' !== $req->method ) {
+			return true;
+		}
+		return (bool) preg_match( '#(^|/)(wp-login\.php|xmlrpc\.php|wp-admin/admin-ajax\.php)$|/wp-json(/|$)#', $req->path )
+			|| isset( $req->query['rest_route'] );
 	}
 
 	/**
@@ -268,16 +337,19 @@ class Uaip_Sfw_WAF {
 	}
 
 	/**
-	 * @param string $ip
+	 * Whether an IP is in one of the IP/CIDR list settings.
+	 *
+	 * @param string $ip      Visitor IP.
+	 * @param string $setting 'waf_allowlist_ips' or 'waf_blocklist_ips'.
 	 * @return bool
 	 */
-	private function is_allowlisted( $ip ) {
-		$list = Uaip_Sfw_Settings::get( 'waf_allowlist_ips', '' );
-		if ( '' === trim( (string) $list ) ) {
+	private function in_ip_list( $ip, $setting ) {
+		$text = (string) Uaip_Sfw_Settings::get( $setting, '' );
+		if ( '' === $ip || '' === trim( $text ) ) {
 			return false;
 		}
-		$ips = preg_split( '/[\s,]+/', trim( $list ) );
-		return in_array( $ip, array_map( 'trim', $ips ), true );
+		$list = Uaip_Sfw_IP::parse_list( $text );
+		return Uaip_Sfw_IP::in_list( $ip, $list['valid'] );
 	}
 
 	/** Pull a fresh signed ruleset from the cloud (weekly Free / 5-min Pro). */
@@ -298,7 +370,6 @@ class Uaip_Sfw_WAF {
 		}
 	}
 
-	/** @return string */
 	/**
 	 * Prepare a request URI for persistence in the WAF stats. The firewall
 	 * matches on the raw URI (see Uaip_Sfw_WAF_Request), but the copy that is stored
