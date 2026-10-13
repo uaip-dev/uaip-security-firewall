@@ -22,6 +22,7 @@ class Uaip_Sfw_Admin {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_post_uaip_sfw_license', array( $this, 'handle_license' ) );
+		add_action( 'wp_ajax_uaip_sfw_scan_step', array( $this, 'ajax_scan_step' ) );
 		add_action( 'admin_post_uaip_sfw_connect', array( $this, 'handle_connect' ) );
 		add_action( 'admin_post_uaip_sfw_connect_account', array( $this, 'handle_connect_account' ) );
 		add_action( 'admin_post_uaip_sfw_sync_cloud', array( $this, 'handle_sync_cloud' ) );
@@ -519,144 +520,206 @@ class Uaip_Sfw_Admin {
 	}
 
 	public function page_scan() {
-		$first_scan = ! get_option( 'uaip_sfw_file_baseline' );
-		$running    = (int) get_option( 'uaip_sfw_scan_running', 0 );
-		// Treat a flag older than 15 min as stale (a scan that died mid-run).
-		$running    = ( $running && ( time() - $running ) < 15 * MINUTE_IN_SECONDS ) ? $running : 0;
+		/** @var Uaip_Sfw_Scanner $scanner */
+		$scanner = $this->plugin->module( 'scanner' );
+		if ( ! $scanner ) {
+			return;
+		}
 
-		if ( isset( $_POST['uaip_sfw_scan_now'] ) && check_admin_referer( 'uaip_sfw_scan_now' ) ) {
-			if ( ! $running ) {
-				// Run in the background via WP-Cron so the heavy first baseline
-				// build never blocks (or times out) this admin request.
-				update_option( 'uaip_sfw_scan_running', time(), false );
-				wp_schedule_single_event( time(), 'uaip_sfw_scan' );
-				spawn_cron();
-				$running = time();
-				$msg = $first_scan
-					? __( 'Scan started. The first run builds a file baseline of your site — this can take a few minutes. Later scans only check what changed and are near-instant.', 'uaip-security-firewall' )
-					: __( 'Scan started in the background. This page updates automatically when it finishes.', 'uaip-security-firewall' );
-				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $msg ) . '</p></div>';
+		if ( isset( $_POST['uaip_sfw_scan_now'] ) && check_admin_referer( 'uaip_sfw_scan_now' ) && current_user_can( 'manage_options' ) ) {
+			$full = ! empty( $_POST['uaip_sfw_full'] );
+			if ( $scanner->start( $full ? true : null ) ) {
+				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Scan started. You can leave this page; it carries on in the background.', 'uaip-security-firewall' ) . '</p></div>';
 			} else {
 				echo '<div class="notice notice-info is-dismissible"><p>' . esc_html__( 'A scan is already running.', 'uaip-security-firewall' ) . '</p></div>';
 			}
 		}
-		// Remediation actions.
-		$scanner = $this->plugin->module( 'scanner' );
-		if ( $scanner && isset( $_POST['uaip_sfw_remediate'] ) && check_admin_referer( 'uaip_sfw_remediate' ) && current_user_can( 'manage_options' ) ) {
-			$action = sanitize_text_field( wp_unslash( $_POST['uaip_sfw_remediate'] ) );
-			$file   = isset( $_POST['uaip_sfw_file'] ) ? sanitize_text_field( wp_unslash( $_POST['uaip_sfw_file'] ) ) : '';
-			$res    = true;
-			if ( 'delete' === $action ) {
-				$res = $scanner->delete_file( $file );
-			}
+		if ( isset( $_POST['uaip_sfw_finding_action'], $_POST['uaip_sfw_finding'] ) && check_admin_referer( 'uaip_sfw_finding' ) && current_user_can( 'manage_options' ) ) {
+			$action = sanitize_key( wp_unslash( $_POST['uaip_sfw_finding_action'] ) );
+			$res    = $scanner->act( absint( wp_unslash( $_POST['uaip_sfw_finding'] ) ), $action );
+			$done   = array(
+				'repair'   => __( 'File restored from the official copy.', 'uaip-security-firewall' ),
+				'delete'   => __( 'File deleted.', 'uaip-security-firewall' ),
+				'ignore'   => __( 'Finding ignored. It comes back if the file changes.', 'uaip-security-firewall' ),
+				'unignore' => __( 'Finding restored.', 'uaip-security-firewall' ),
+			);
 			echo is_wp_error( $res )
 				? '<div class="notice notice-error"><p>' . esc_html( $res->get_error_message() ) . '</p></div>'
-				: '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Done.', 'uaip-security-firewall' ) . '</p></div>';
+				: '<div class="notice notice-success is-dismissible"><p>' . esc_html( isset( $done[ $action ] ) ? $done[ $action ] : __( 'Done.', 'uaip-security-firewall' ) ) . '</p></div>';
 		}
 
-		$scan     = get_option( 'uaip_sfw_last_scan_summary', array() );
-		$findings = get_option( 'uaip_sfw_last_scan_findings', array() );
+		$progress = $scanner->progress();
+		$scan     = get_option( Uaip_Sfw_Scanner::SUMMARY_OPTION, array() );
 		$has_scan = ! empty( $scan );
-		$clean    = $has_scan && empty( $findings );
+		$open     = $scanner->findings( 'open' );
+		$ignored  = $scanner->findings( 'ignored', 200 );
+		$clean    = $has_scan && ! $open;
 
 		echo '<div class="wrap uaip-sfw-wrap">';
-		$this->header( __( 'Malware Scan', 'uaip-security-firewall' ), __( 'YARA + integrity scanning of core, plugins and themes', 'uaip-security-firewall' ), 'dashicons-search' );
+		$this->header( __( 'Malware Scan', 'uaip-security-firewall' ), __( 'Integrity and malware scanning of the whole site', 'uaip-security-firewall' ), 'dashicons-search' );
 
-		if ( $running ) {
-			echo '<div class="notice notice-info"><p>'
-				. '<span class="spinner is-active" style="float:none;margin:-2px 6px 0 0"></span>'
-				. esc_html(
-					$first_scan
-						? __( 'Building the file baseline — the first scan can take a few minutes. This page refreshes automatically.', 'uaip-security-firewall' )
-						: __( 'Scan in progress… this page refreshes automatically.', 'uaip-security-firewall' )
-				)
-				. '</p></div>';
-			// Auto-refresh while a scan runs — enqueued (not an inline <script> tag)
-			// via a src-less handle that prints in the admin footer.
-			wp_register_script( 'uaip-sfw-scan-refresh', '', array(), UAIP_SFW_VERSION, true );
-			wp_enqueue_script( 'uaip-sfw-scan-refresh' );
-			wp_add_inline_script( 'uaip-sfw-scan-refresh', 'setTimeout(function(){location.reload();},8000);' );
-		}
-
-		// Scan hero card.
-		$state = ! $has_scan ? 'idle' : ( $clean ? 'good' : 'bad' );
-		echo '<div class="uaip-sfw-card uaip-sfw-scan-hero uaip-sfw-scan-' . esc_attr( $state ) . '">';
-		echo '<div class="uaip-sfw-scan-hero-main">';
-		$icon = 'idle' === $state ? 'dashicons-shield' : ( $clean ? 'dashicons-yes-alt' : 'dashicons-warning' );
-		printf( '<span class="dashicons %s uaip-sfw-scan-icon"></span>', esc_attr( $icon ) );
-		echo '<div>';
-		if ( ! $has_scan ) {
+		// Hero card.
+		$state = $progress['running'] ? 'idle' : ( ! $has_scan ? 'idle' : ( $clean ? 'good' : 'bad' ) );
+		echo '<div class="uaip-sfw-card uaip-sfw-scan-hero uaip-sfw-scan-' . esc_attr( $state ) . '"><div class="uaip-sfw-scan-hero-main">';
+		$icon = $progress['running'] ? 'dashicons-update' : ( 'idle' === $state ? 'dashicons-shield' : ( $clean ? 'dashicons-yes-alt' : 'dashicons-warning' ) );
+		printf( '<span class="dashicons %s uaip-sfw-scan-icon"></span><div>', esc_attr( $icon ) );
+		if ( $progress['running'] ) {
+			echo '<h2>' . esc_html__( 'Scanning…', 'uaip-security-firewall' ) . '</h2>';
+			printf(
+				'<div id="uaip-sfw-scan-progress" class="uaip-sfw-progress" data-ajax="%s" data-nonce="%s"><div class="uaip-sfw-progress-track"><div class="uaip-sfw-progress-fill" style="width:%d%%"></div></div><p class="uaip-sfw-progress-label">%s</p></div>',
+				esc_url( admin_url( 'admin-ajax.php' ) ),
+				esc_attr( wp_create_nonce( 'uaip_sfw_scan_step' ) ),
+				(int) $progress['percent'],
+				esc_html( $this->scan_progress_text( $progress ) )
+			);
+		} elseif ( ! $has_scan ) {
 			echo '<h2>' . esc_html__( 'No scan has run yet', 'uaip-security-firewall' ) . '</h2>';
-			echo '<p>' . esc_html__( 'Run your first scan to check your site for malware and modified files.', 'uaip-security-firewall' ) . '</p>';
+			echo '<p>' . esc_html__( 'The first scan records every PHP file of your site so later scans only need to check what changed.', 'uaip-security-firewall' ) . '</p>';
 		} elseif ( $clean ) {
-			echo '<h2>' . esc_html__( 'No malware found', 'uaip-security-firewall' ) . '</h2>';
-			printf( '<p>%s %s</p>', esc_html__( 'Last scan', 'uaip-security-firewall' ), esc_html( human_time_diff( (int) $scan['ts'] ) . ' ' . __( 'ago', 'uaip-security-firewall' ) ) );
+			echo '<h2>' . esc_html__( 'No problems found', 'uaip-security-firewall' ) . '</h2>';
+			printf( '<p>%s</p>', esc_html( $this->scan_when( $scan ) ) );
 		} else {
-			printf( '<h2>%d %s</h2>', (int) $scan['findings'], esc_html__( 'issues need attention', 'uaip-security-firewall' ) );
-			printf( '<p>%s %s</p>', esc_html__( 'Last scan', 'uaip-security-firewall' ), esc_html( human_time_diff( (int) $scan['ts'] ) . ' ' . __( 'ago', 'uaip-security-firewall' ) ) );
+			/* translators: %d: number of findings */
+			printf( '<h2>%s</h2>', esc_html( sprintf( _n( '%d issue needs attention', '%d issues need attention', count( $open ), 'uaip-security-firewall' ), count( $open ) ) ) );
+			printf( '<p>%s</p>', esc_html( $this->scan_when( $scan ) ) );
 		}
 		echo '</div></div>';
-		echo '<form method="post" class="uaip-sfw-scan-action">';
-		wp_nonce_field( 'uaip_sfw_scan_now' );
-		if ( $running ) {
-			echo '<button class="button button-hero button-primary" disabled>' . esc_html__( 'Scanning…', 'uaip-security-firewall' ) . '</button>';
-		} else {
+		if ( ! $progress['running'] ) {
+			echo '<form method="post" class="uaip-sfw-scan-action">';
+			wp_nonce_field( 'uaip_sfw_scan_now' );
 			submit_button( __( 'Scan now', 'uaip-security-firewall' ), 'primary button-hero', 'uaip_sfw_scan_now', false );
+			echo '<label class="uaip-sfw-full-scan"><input type="checkbox" name="uaip_sfw_full" value="1"> ' . esc_html__( 'Re-check every file (slower)', 'uaip-security-firewall' ) . '</label>';
+			echo '</form>';
 		}
-		echo '</form>';
 		echo '</div>';
 
-		// Scan detail tiles.
+		// Detail tiles.
 		echo '<div class="uaip-sfw-modules uaip-sfw-scan-meta">';
-		$this->stat( 'dashicons-admin-tools', __( 'Malware scanner', 'uaip-security-firewall' ), $has_scan ? $this->scan_engine_label( $scan['engine'] ) : __( 'pending', 'uaip-security-firewall' ) );
-		$this->stat( 'dashicons-media-code', __( 'Files scanned', 'uaip-security-firewall' ), $has_scan && isset( $scan['scanned'] ) ? (int) $scan['scanned'] : '—' );
-		$this->stat( 'dashicons-search', __( 'Findings', 'uaip-security-firewall' ), $has_scan ? (int) $scan['findings'] : '—' );
-		if ( $has_scan && isset( $scan['changes'] ) ) {
+		$this->stat( 'dashicons-media-code', __( 'PHP files tracked', 'uaip-security-firewall' ), $has_scan && isset( $scan['files'] ) ? number_format_i18n( (int) $scan['files'] ) : '—' );
+		$this->stat( 'dashicons-search', __( 'Checked last scan', 'uaip-security-firewall' ), $has_scan ? number_format_i18n( (int) $scan['scanned'] ) : '—' );
+		if ( $has_scan && empty( $scan['baseline'] ) && isset( $scan['changes'] ) ) {
 			$ch = $scan['changes'];
-			$this->stat(
-				'dashicons-backup',
-				__( 'Code changes', 'uaip-security-firewall' ),
-				sprintf( '+%d / ~%d / −%d', (int) $ch['added'], (int) $ch['changed'], (int) $ch['removed'] )
-			);
+			$this->stat( 'dashicons-backup', __( 'Changes since previous scan', 'uaip-security-firewall' ), sprintf( '+%d / ~%d / −%d', (int) $ch['added'], (int) $ch['changed'], (int) $ch['removed'] ) );
 		}
-		$this->stat( 'dashicons-clock', __( 'Last run', 'uaip-security-firewall' ), $has_scan ? human_time_diff( (int) $scan['ts'] ) . ' ' . __( 'ago', 'uaip-security-firewall' ) : __( 'never', 'uaip-security-firewall' ) );
+		$this->stat( 'dashicons-warning', __( 'Open findings', 'uaip-security-firewall' ), $has_scan ? count( $open ) : '—' );
 		echo '</div>';
-
-		if ( $has_scan && ! empty( $scan['capped'] ) ) {
-			printf(
-				'<div class="notice notice-warning inline"><p>%s</p></div>',
-				esc_html( sprintf(
-					/* translators: %d: number of files skipped */
-					__( 'Note: %d files were skipped to keep the scan fast.', 'uaip-security-firewall' ),
-					(int) $scan['capped']
-				) )
-			);
-		}
 
 		// ClamAV antivirus status (Pro).
 		$this->render_clamav_card();
 
-		// Findings table.
-		if ( ! empty( $findings ) ) {
-			echo '<div class="uaip-sfw-card"><h2>' . esc_html__( 'Findings', 'uaip-security-firewall' ) . '</h2>';
-			echo '<table class="widefat striped uaip-sfw-table"><thead><tr><th>' . esc_html__( 'Severity', 'uaip-security-firewall' ) . '</th><th>' . esc_html__( 'File', 'uaip-security-firewall' ) . '</th><th>' . esc_html__( 'Detection', 'uaip-security-firewall' ) . '</th><th>' . esc_html__( 'Action', 'uaip-security-firewall' ) . '</th></tr></thead><tbody>';
-			foreach ( $findings as $f ) {
-				$sev  = isset( $f['severity'] ) ? $f['severity'] : 'medium';
-				$file = isset( $f['file'] ) ? $f['file'] : '';
-				printf(
-					'<tr><td><span class="uaip-sfw-sev uaip-sfw-sev-%s">%s</span></td><td><code>%s</code></td><td><strong>%s</strong>%s</td><td>%s</td></tr>',
-					esc_attr( $sev ),
-					esc_html( ucfirst( $sev ) ),
-					esc_html( $file ? $file : '—' ),
-					esc_html( isset( $f['rule'] ) ? $f['rule'] : '—' ),
-					! empty( $f['description'] ) ? '<br><span class="uaip-sfw-finding-desc">' . esc_html( $f['description'] ) . '</span>' : '',
-					$file ? $this->remediate_buttons( $file ) : '—' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- remediate_buttons() returns escaped markup.
-				);
-			}
-			echo '</tbody></table></div>';
+		if ( $open ) {
+			$this->findings_table( __( 'Findings', 'uaip-security-firewall' ), $open, false );
+		}
+		if ( $ignored ) {
+			$this->findings_table( __( 'Ignored', 'uaip-security-firewall' ), $ignored, true );
 		}
 
+		echo '<div class="uaip-sfw-card"><h2>' . esc_html__( 'What the scan checks', 'uaip-security-firewall' ) . '</h2><ul class="uaip-sfw-list">';
+		foreach ( array(
+			__( 'WordPress core files against the official checksums from wordpress.org, and unknown files in wp-admin and wp-includes.', 'uaip-security-firewall' ),
+			__( 'Plugins from wordpress.org against their official checksums. Changed files can be restored in one click.', 'uaip-security-firewall' ),
+			__( 'Unexpected PHP files in the site root, in wp-content and in the uploads folder.', 'uaip-security-firewall' ),
+			__( 'Every other PHP file (themes, custom and premium plugins, wp-config.php, drop-ins) with malware rules.', 'uaip-security-firewall' ),
+		) as $line ) {
+			echo '<li>' . esc_html( $line ) . '</li>';
+		}
+		echo '</ul></div>';
 		echo '</div>';
+	}
+
+	/**
+	 * "Last scan 2 hours ago, took 40 seconds".
+	 *
+	 * @param array $scan Summary.
+	 * @return string
+	 */
+	private function scan_when( array $scan ) {
+		$text = sprintf(
+			/* translators: %s: human-readable time difference */
+			__( 'Last scan %s ago', 'uaip-security-firewall' ),
+			human_time_diff( (int) $scan['ts'] )
+		);
+		if ( isset( $scan['duration'] ) ) {
+			/* translators: 1: previous text, 2: duration such as "40 secs" */
+			$text = sprintf( __( '%1$s, took %2$s', 'uaip-security-firewall' ), $text, human_time_diff( 0, max( 1, (int) $scan['duration'] ) ) );
+		}
+		return $text;
+	}
+
+	/**
+	 * Progress line under the bar.
+	 *
+	 * @param array $p Progress.
+	 * @return string
+	 */
+	private function scan_progress_text( array $p ) {
+		if ( 'walk' === $p['phase'] ) {
+			/* translators: %s: number of files found so far */
+			return sprintf( __( 'Listing files… %s found', 'uaip-security-firewall' ), number_format_i18n( (int) $p['files'] ) );
+		}
+		/* translators: 1: files checked, 2: files to check */
+		return sprintf( __( 'Checking files… %1$s of %2$s', 'uaip-security-firewall' ), number_format_i18n( (int) $p['checked'] ), number_format_i18n( (int) $p['to_check'] ) );
+	}
+
+	/**
+	 * AJAX: run a short scan step and report progress (Scan page poller).
+	 */
+	public function ajax_scan_step() {
+		check_ajax_referer( 'uaip_sfw_scan_step' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( null, 403 );
+		}
+		$scanner  = $this->plugin->module( 'scanner' );
+		$progress = $scanner ? $scanner->step( 5 ) : array( 'running' => false );
+		if ( ! empty( $progress['running'] ) ) {
+			$progress['text'] = $this->scan_progress_text( $progress );
+		}
+		wp_send_json_success( $progress );
+	}
+
+	/**
+	 * Findings table with per-row actions.
+	 *
+	 * @param string $title   Card title.
+	 * @param array  $rows    Findings.
+	 * @param bool   $ignored Whether these are ignored findings.
+	 */
+	private function findings_table( $title, array $rows, $ignored ) {
+		echo '<div class="uaip-sfw-card"><h2>' . esc_html( $title ) . '</h2>';
+		echo '<table class="widefat striped uaip-sfw-table"><thead><tr><th>' . esc_html__( 'Severity', 'uaip-security-firewall' ) . '</th><th>' . esc_html__( 'File', 'uaip-security-firewall' ) . '</th><th>' . esc_html__( 'What we found', 'uaip-security-firewall' ) . '</th><th>' . esc_html__( 'Action', 'uaip-security-firewall' ) . '</th></tr></thead><tbody>';
+		foreach ( $rows as $f ) {
+			echo '<tr><td><span class="uaip-sfw-sev uaip-sfw-sev-' . esc_attr( $f->severity ) . '">' . esc_html( ucfirst( $f->severity ) ) . '</span></td>';
+			echo '<td><code>' . esc_html( $f->path ) . '</code></td>';
+			echo '<td>' . esc_html( $f->description ) . '<br><span class="uaip-sfw-finding-desc">' . esc_html( $f->rule ) . '</span></td><td class="uaip-sfw-actions">';
+			if ( $ignored ) {
+				$this->finding_button( $f, 'unignore', __( 'Restore', 'uaip-security-firewall' ), 'button-small' );
+			} else {
+				if ( 'repair' === $f->fix ) {
+					$this->finding_button( $f, 'repair', __( 'Repair', 'uaip-security-firewall' ), 'button-small button-primary', __( 'Replace this file with the official copy from wordpress.org?', 'uaip-security-firewall' ) );
+				} elseif ( 'delete' === $f->fix ) {
+					$this->finding_button( $f, 'delete', __( 'Delete', 'uaip-security-firewall' ), 'button-small button-link-delete', __( 'Permanently delete this file? Make sure you have a backup.', 'uaip-security-firewall' ) );
+				}
+				$this->finding_button( $f, 'ignore', __( 'Ignore', 'uaip-security-firewall' ), 'button-small button-link' );
+			}
+			echo '</td></tr>';
+		}
+		echo '</tbody></table></div>';
+	}
+
+	/**
+	 * One finding action button (its own small form).
+	 *
+	 * @param object $f       Finding.
+	 * @param string $action  Action.
+	 * @param string $label   Button text.
+	 * @param string $class   Button classes.
+	 * @param string $confirm Optional confirmation question.
+	 */
+	private function finding_button( $f, $action, $label, $class, $confirm = '' ) {
+		echo '<form method="post" class="uaip-sfw-inline-form"' . ( '' !== $confirm ? ' data-confirm="' . esc_attr( $confirm ) . '"' : '' ) . '>';
+		wp_nonce_field( 'uaip_sfw_finding' );
+		echo '<input type="hidden" name="uaip_sfw_finding" value="' . (int) $f->id . '">';
+		echo '<button type="submit" class="button ' . esc_attr( $class ) . '" name="uaip_sfw_finding_action" value="' . esc_attr( $action ) . '">' . esc_html( $label ) . '</button></form>';
 	}
 
 	/**
@@ -934,21 +997,6 @@ class Uaip_Sfw_Admin {
 		echo '<p>';
 		submit_button( __( 'Apply hardening', 'uaip-security-firewall' ), 'primary button-hero', 'uaip_sfw_harden_save', false );
 		echo '</p></div></form></div>';
-	}
-
-	/**
-	 * Delete button for a scan finding.
-	 *
-	 * @param string $file Path relative to ABSPATH.
-	 * @return string HTML (values escaped).
-	 */
-	private function remediate_buttons( $file ) {
-		$nonce = wp_nonce_field( 'uaip_sfw_remediate', '_wpnonce', true, false );
-		$f     = esc_attr( $file );
-		$d     = '<form method="post" style="display:inline" onsubmit="return confirm(\'' . esc_js( __( 'Permanently delete this file?', 'uaip-security-firewall' ) ) . '\')">' . $nonce .
-			'<input type="hidden" name="uaip_sfw_file" value="' . $f . '" />' .
-			'<button class="button button-small button-link-delete" name="uaip_sfw_remediate" value="delete">' . esc_html__( 'Delete', 'uaip-security-firewall' ) . '</button></form>';
-		return $d;
 	}
 
 	/**

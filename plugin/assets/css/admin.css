@@ -290,3 +290,15 @@
   color: #dba617;
   vertical-align: text-bottom;
 }
+
+/* Scan: progress, actions */
+.uaip-sfw-progress { margin-top: 8px; min-width: 320px; }
+.uaip-sfw-progress-track { height: 10px; border-radius: 999px; background: #e2e4e7; overflow: hidden; }
+.uaip-sfw-progress-fill { height: 100%; border-radius: 999px; background: #ea580c; transition: width .4s ease; }
+.uaip-sfw-progress-label { margin: 6px 0 0; color: #646970; }
+.uaip-sfw-full-scan { display: block; margin-top: 8px; font-size: 12px; color: #646970; }
+.uaip-sfw-inline-form { display: inline-block; margin: 0 4px 4px 0; }
+.uaip-sfw-actions { white-space: nowrap; }
+.uaip-sfw-list { margin: 0 0 0 18px; list-style: disc; }
+.uaip-sfw-list li { margin: 4px 0; }
+@media (prefers-reduced-motion: reduce) { .uaip-sfw-progress-fill { transition: none; } }

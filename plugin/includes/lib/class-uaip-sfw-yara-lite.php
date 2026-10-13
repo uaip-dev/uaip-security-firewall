@@ -361,6 +361,11 @@ class Uaip_Sfw_Yara_Lite {
 			$cond
 		);
 
+		// Fail closed: anything left besides booleans, operators and brackets is
+		// syntax this matcher does not support, so the rule does not match.
+		if ( '' !== trim( preg_replace( '/\b(true|false|and|or|not)\b|[()\s]/', '', $cond ) ) ) {
+			return false;
+		}
 		return $this->eval_bool( $cond );
 	}
 

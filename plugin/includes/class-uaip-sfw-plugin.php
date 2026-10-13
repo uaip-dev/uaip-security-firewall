@@ -38,6 +38,9 @@ final class Uaip_Sfw_Plugin {
 		// bundled .mo in /languages is loaded just-in-time on first use — so an
 		// explicit load_plugin_textdomain() call is unnecessary (and discouraged).
 
+		// Create/upgrade the scanner tables after an update (cheap version check).
+		Uaip_Sfw_DB::maybe_upgrade();
+
 		$this->license = new Uaip_Sfw_License();
 		// Reconcile tier first so a lapsed license halts Pro before modules load.
 		$this->license->enforce_tier();

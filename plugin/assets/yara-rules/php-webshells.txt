@@ -1,27 +1,50 @@
 /*
-   UAIP Security bundled YARA ruleset — PHP webshells & backdoors (starter set).
-   Identifiers are lowercase for Uaip_Sfw_Yara_Lite compatibility.
+   UAIP Security Firewall — bundled YARA ruleset: PHP webshells and backdoors.
+   Rules describe the backdoor itself (code built from request input, decoded
+   payloads handed straight to eval), not words that also appear in ordinary
+   plugins. Identifiers are lowercase for Uaip_Sfw_Yara_Lite compatibility.
 */
 
-rule sfw_eval_base64
+rule sfw_eval_decoded
 {
     meta:
-        description = "eval() of base64-decoded data (classic PHP backdoor)"
+        description = "Decoded payload handed straight to eval() or assert() (classic PHP backdoor)"
         severity = "critical"
     strings:
-        $eval = "eval(" nocase
-        $b64  = "base64_decode(" nocase
+        $a = /\b(eval|assert)\s*\(\s*(@\s*)?(base64_decode|gzinflate|gzuncompress|gzdecode|str_rot13|strrev|hex2bin|convert_uudecode)\s*\(/ nocase
     condition:
-        $eval and $b64
+        $a
+}
+
+rule sfw_eval_request
+{
+    meta:
+        description = "eval() of request input"
+        severity = "critical"
+    strings:
+        $a = /\beval\s*\(\s*(@\s*)?(stripslashes\s*\(\s*)?\$_(get|post|request|cookie|server)\b/ nocase
+    condition:
+        $a
 }
 
 rule sfw_exec_from_request
 {
     meta:
-        description = "Shell command execution from an HTTP request parameter"
+        description = "Shell command execution from request input"
         severity = "critical"
     strings:
-        $a = /\b(system|exec|shell_exec|passthru|popen|proc_open)\s*\(\s*\$_(get|post|request|cookie|server)/ nocase
+        $a = /\b(system|exec|shell_exec|passthru|popen|proc_open|pcntl_exec)\s*\(\s*(@\s*)?\$_(get|post|request|cookie|server)\b/ nocase
+    condition:
+        $a
+}
+
+rule sfw_variable_function_request
+{
+    meta:
+        description = "Function name taken from request input and called ($_GET['f'](...))"
+        severity = "critical"
+    strings:
+        $a = /\$_(get|post|request|cookie)\s*\[[^\]]{1,40}\]\s*\(/ nocase
     condition:
         $a
 }
@@ -32,7 +55,18 @@ rule sfw_assert_request
         description = "assert() executing request input"
         severity = "high"
     strings:
-        $a = /assert\s*\(\s*\$_(get|post|request|cookie)/ nocase
+        $a = /\bassert\s*\(\s*(@\s*)?\$_(get|post|request|cookie)\b/ nocase
+    condition:
+        $a
+}
+
+rule sfw_include_request
+{
+    meta:
+        description = "include/require of a path taken from request input"
+        severity = "high"
+    strings:
+        $a = /\b(include|require)(_once)?\s*\(?\s*(@\s*)?\$_(get|post|request|cookie)\b/ nocase
     condition:
         $a
 }
@@ -43,42 +77,71 @@ rule sfw_preg_replace_eval
         description = "preg_replace() with the /e modifier (code execution)"
         severity = "high"
     strings:
-        $a = /preg_replace\s*\(\s*["'][^"']*\/e["']/ nocase
+        $a = /preg_replace\s*\(\s*["'][^"']*\/[a-df-z]*e[a-z]*["']\s*,/ nocase
     condition:
         $a
 }
 
-rule sfw_obfuscation_layered
-{
-    meta:
-        description = "Layered obfuscation (gzinflate/str_rot13/gzuncompress) feeding eval"
-        severity = "high"
-    strings:
-        $eval = "eval("        nocase
-        $a    = "gzinflate("   nocase
-        $b    = "str_rot13("   nocase
-        $c    = "gzuncompress(" nocase
-        $d    = "base64_decode(" nocase
-    condition:
-        $eval and 2 of ($a, $b, $c, $d)
-}
-
-rule sfw_create_function_backdoor
+rule sfw_create_function_request
 {
     meta:
         description = "create_function() built from request input"
         severity = "high"
     strings:
-        $a = "create_function(" nocase
-        $b = /\$_(get|post|request|cookie)/ nocase
+        $a = /\bcreate_function\s*\([^;]{0,200}\$_(get|post|request|cookie)\b/ nocase
     condition:
-        all of them
+        $a
+}
+
+rule sfw_callback_request
+{
+    meta:
+        description = "Dynamic callback executing request input (call_user_func)"
+        severity = "high"
+    strings:
+        $a = /\bcall_user_func(_array)?\s*\(\s*\$_(get|post|request|cookie)\b/ nocase
+    condition:
+        $a
+}
+
+rule sfw_encoded_blob_eval
+{
+    meta:
+        description = "Very long encoded string in a file that also calls eval()"
+        severity = "high"
+    strings:
+        $blob = /["'][A-Za-z0-9+\/]{3000,}={0,2}["']/
+        $eval = /\beval\s*\(/ nocase
+    condition:
+        $blob and $eval
+}
+
+rule sfw_globals_obfuscation
+{
+    meta:
+        description = "Obfuscator pattern that rebuilds code from $GLOBALS array pieces"
+        severity = "high"
+    strings:
+        $a = /\$GLOBALS\s*\[\s*['"][^'"]{1,40}['"]\s*\]\s*\[\s*\d+\s*\]\s*\.\s*\$GLOBALS\s*\[/
+    condition:
+        $a
+}
+
+rule sfw_hex_escaped_code
+{
+    meta:
+        description = "Long run of \\x hex escapes (hidden code)"
+        severity = "medium"
+    strings:
+        $a = /(\\x[0-9a-f]{2}){40,}/ nocase
+    condition:
+        $a
 }
 
 rule sfw_known_shell_markers
 {
     meta:
-        description = "Known webshell fingerprints (c99/r57/WSO/b374k/FilesMan)"
+        description = "Known webshell fingerprint (c99, r57, WSO, b374k, FilesMan)"
         severity = "critical"
     strings:
         $a = "FilesMan"
@@ -86,43 +149,6 @@ rule sfw_known_shell_markers
         $c = "r57shell"  nocase
         $d = "wsoshell"  nocase
         $e = "b374k"     nocase
-        $f = "by orb"    nocase
     condition:
         any of them
-}
-
-rule sfw_uploader_base64
-{
-    meta:
-        description = "File uploader writing decoded content (possible dropper)"
-        severity = "medium"
-    strings:
-        $a = "move_uploaded_file(" nocase
-        $b = /\$_files/ nocase
-        $c = "base64_decode(" nocase
-    condition:
-        ($a and $b) and $c
-}
-
-rule sfw_callback_obfuscation
-{
-    meta:
-        description = "Dynamic callback executing request input (call_user_func)"
-        severity = "high"
-    strings:
-        $a = /call_user_func(_array)?\s*\(\s*\$_(get|post|request)/ nocase
-    condition:
-        $a
-}
-
-rule sfw_hex_eval_marker
-{
-    meta:
-        description = "eval marker present as raw bytes"
-        severity = "medium"
-    strings:
-        $h = { 65 76 61 6C 28 }   // "eval("
-        $b = "base64_decode(" nocase
-    condition:
-        $h and $b
 }
