@@ -1,0 +1,1830 @@
+# Copyright (C) 2026 UAIP Security Sdn Bhd
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: UAIP Security Firewall 0.1.21\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/uaip-security-firewall\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-07-22T02:54:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: uaip-security-firewall\n"
+
+#. Plugin Name of the plugin
+#: uaip-sfw.php
+msgid "UAIP Security Firewall"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: uaip-sfw.php
+msgid "https://security.uaip.dev/"
+msgstr ""
+
+#. Description of the plugin
+#: uaip-sfw.php
+msgid "Endpoint firewall, YARA malware scanner, login protection and cloud-powered anomaly detection for WordPress. Free runs standalone; Pro adds ClamAV, cloud threat intelligence and auto-remediation."
+msgstr ""
+
+#. Author of the plugin
+#: uaip-sfw.php
+msgid "UAIP Security Sdn Bhd"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:46
+msgid "Your Pro subscription has lapsed — Pro features are now disabled and your site is on the Free plan."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:48
+#: includes/admin/class-ps-admin.php:1728
+msgid "Renew subscription"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:50
+msgid "License settings"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:61
+msgid "Developer Pro simulation is active (UAIP_SFW_DEV_PRO). All Pro features are unlocked locally — disable this before production."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:95
+#: includes/admin/class-ps-admin.php:1569
+msgid "Connected"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:96
+#: includes/admin/class-ps-admin.php:1569
+msgid "Connected (idle)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:125
+msgid "Dashboard"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:126
+#: includes/admin/class-ps-admin.php:234
+#: includes/class-ps-features.php:31
+#: includes/class-ps-features.php:38
+#: includes/class-ps-features.php:45
+#: includes/class-ps-features.php:52
+msgid "Firewall"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:127
+msgid "Scan"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:128
+#: includes/admin/class-ps-admin.php:970
+#: includes/admin/class-ps-admin.php:1283
+msgid "Audit Log"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:129
+msgid "Two-Factor"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:130
+#: includes/admin/class-ps-admin.php:861
+#: includes/admin/class-ps-admin.php:1282
+#: includes/class-ps-features.php:121
+msgid "Hardening"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:131
+#: includes/admin/class-ps-admin.php:908
+msgid "Login Page"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:132
+#: includes/admin/class-ps-admin.php:1016
+msgid "Settings"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:133
+#: includes/admin/class-ps-admin.php:1429
+msgid "Plans & Upgrade"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:134
+#: includes/admin/class-ps-admin.php:1666
+msgid "License"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:205
+msgid "Firewall settings saved."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:209
+msgid "Firewall log cleared."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:216
+msgid "Extended protection enabled."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:219
+msgid "Extended protection disabled."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:234
+msgid "Endpoint Web Application Firewall"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:238
+msgid "Firewall is off"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:238
+msgid "Your site is not being protected from web attacks."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:240
+msgid "Learning mode"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:240
+msgid "Attacks are detected and logged but not blocked. Switch to Active once you have confirmed there are no false positives."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:242
+msgid "Active protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:242
+msgid "Malicious requests are being blocked in real time."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:247
+msgid "Blocks (15m)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:248
+msgid "Active rules"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:249
+msgid "Top attack type"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:250
+msgid "Block threshold"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:256
+msgid "Firewall settings"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:257
+msgid "Enable firewall"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:257
+msgid "Inspect and filter incoming requests."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:260
+msgid "Enforcement mode"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:260
+msgid "Block attacks, or only detect them while you tune the rules."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:261
+msgid "Active (block)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:262
+msgid "Learning (detect only)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:266
+msgid "Anomaly score threshold"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:266
+msgid "Block when matched rule scores reach this total. Lower = stricter."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:270
+msgid "Rate limit (requests/min per IP)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:270
+msgid "Throttle abusive clients and bots. 0 disables rate limiting."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:274
+msgid "IP allowlist"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:274
+msgid "These IPs bypass the firewall (one per line)."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:278
+msgid "Save firewall settings"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:287
+msgid "Extended Protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:288
+msgid "Run the firewall before WordPress loads (via auto_prepend) so attacks are blocked even on requests that bypass WordPress. Recommended once you have confirmed there are no false positives."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:293
+#: includes/admin/class-ps-admin.php:827
+#: includes/admin/class-ps-admin.php:1297
+#: includes/admin/class-ps-admin.php:1693
+msgid "Active"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:293
+msgid "Installed"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:294
+msgid "The early firewall is running on this request."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:294
+msgid "Installed — may need a few seconds, or a PHP reload, to take effect."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:301
+msgid "Disable extended protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:304
+msgid "Enable extended protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:310
+msgid "Recent firewall events"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:313
+#: includes/admin/class-ps-admin.php:977
+msgid "Clear log"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:317
+msgid "No attacks detected yet."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:319
+#: includes/admin/class-ps-admin.php:984
+msgid "When"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:319
+#: includes/admin/class-ps-admin.php:558
+#: includes/admin/class-ps-admin.php:580
+msgid "Action"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:319
+msgid "Type"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:319
+msgid "Rule"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:319
+msgid "Score"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:319
+msgid "Request"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:324
+#: includes/admin/class-ps-admin.php:509
+#: includes/admin/class-ps-admin.php:512
+#: includes/admin/class-ps-admin.php:538
+#: includes/admin/class-ps-admin.php:582
+#: includes/admin/class-ps-admin.php:988
+#: includes/admin/class-ps-admin.php:1198
+#: includes/admin/class-ps-admin.php:1580
+msgid "ago"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:359
+msgid "Geo-blocking settings saved."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:364
+#: includes/admin/class-ps-admin.php:376
+msgid "Country / Geo Blocking"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:364
+#: includes/admin/class-ps-admin.php:802
+#: includes/admin/class-ps-admin.php:1294
+msgid "Pro"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:365
+msgid "Block or allow visitors by country. UAIP Security resolves the visitor's country from your CDN headers (e.g. Cloudflare) or the UAIP Security Cloud — no database to install."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:366
+#: includes/admin/class-ps-admin.php:805
+msgid "Upgrade to Pro"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:379
+msgid "Your detected country:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:380
+msgid "unknown (no CDN header / cloud)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:381
+msgid "Blocked (15m):"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:387
+msgid "Enable geo-blocking"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:387
+msgid "Filter visitors by country."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:389
+msgid "Mode"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:389
+msgid "Block the listed countries, or allow only the listed countries."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:390
+msgid "Blocklist"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:391
+msgid "Allowlist"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:394
+msgid "Countries"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:394
+msgid "ISO-3166 two-letter codes, comma separated (e.g. RU, CN, KP)."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:397
+msgid "Block unknown locations"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:397
+msgid "Block requests whose country cannot be determined."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:399
+msgid "Bypass IPs"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:399
+msgid "These IPs are never geo-blocked (one per line)."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:403
+msgid "Save geo-blocking"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:408
+msgid "Top blocked countries:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:422
+msgid "Active (native YARA)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:424
+msgid "Active (built-in)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:426
+msgid "No rules loaded"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:428
+#: includes/admin/class-ps-admin.php:527
+#: includes/admin/class-ps-admin.php:1167
+msgid "pending"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:447
+msgid "Scan started. The first run builds a file baseline of your site — this can take a few minutes. Later scans only check what changed and are near-instant."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:448
+msgid "Scan started in the background. This page updates automatically when it finishes."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:451
+msgid "A scan is already running."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:470
+msgid "Done."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:479
+msgid "Malware Scan"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:479
+msgid "YARA + integrity scanning of core, plugins and themes"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:486
+msgid "Building the file baseline — the first scan can take a few minutes. This page refreshes automatically."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:487
+msgid "Scan in progress… this page refreshes automatically."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:505
+msgid "No scan has run yet"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:506
+msgid "Run your first scan to check your site for malware and modified files."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:508
+msgid "No malware found"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:509
+#: includes/admin/class-ps-admin.php:512
+msgid "Last scan"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:511
+msgid "issues need attention"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:518
+msgid "Scanning…"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:520
+#: includes/admin/class-ps-admin.php:1380
+msgid "Scan now"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:527
+#: includes/admin/class-ps-admin.php:1167
+msgid "Malware scanner"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:528
+msgid "Files scanned"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:529
+#: includes/admin/class-ps-admin.php:557
+msgid "Findings"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:534
+msgid "Code changes"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:538
+msgid "Last run"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:538
+#: includes/admin/class-ps-admin.php:1580
+#: includes/class-ps-plugin.php:144
+msgid "never"
+msgstr ""
+
+#. translators: %d: number of files skipped
+#: includes/admin/class-ps-admin.php:546
+#, php-format
+msgid "Note: %d files were skipped to keep the scan fast."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:558
+msgid "Severity"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:558
+#: includes/admin/class-ps-admin.php:580
+msgid "File"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:558
+msgid "Detection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:579
+#: includes/admin/class-ps-admin.php:884
+msgid "Quarantine"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:580
+msgid "Quarantined"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:586
+msgid "Restore"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:617
+msgid "Two-factor authentication is now enabled."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:621
+msgid "Two-factor authentication has been disabled."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:624
+msgid "New recovery codes generated. Your old codes no longer work."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:631
+#: includes/admin/class-ps-admin.php:1042
+msgid "Two-Factor Authentication"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:631
+msgid "Protect your account with a one-time code"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:666
+msgid "2FA is active on your account"
+msgstr ""
+
+#. translators: %d: number of recovery codes left
+#: includes/admin/class-ps-admin.php:671
+#, php-format
+msgid "You have %d recovery codes remaining."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:681
+msgid "Regenerate recovery codes"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:683
+msgid "Disable two-factor authentication?"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:686
+msgid "Disable 2FA"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:698
+msgid "Set up in three steps"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:704
+msgid "Install an authenticator app"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:705
+msgid "Google Authenticator, Authy, 1Password or Microsoft Authenticator all work."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:710
+msgid "Scan the QR code"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:711
+msgid "Scan this with your authenticator app, or enter the key manually."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:728
+msgid "Can't scan? Enter this key:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:730
+msgid "Copy"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:734
+msgid "Open in authenticator app (mobile)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:739
+msgid "Generate a new key"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:741
+msgid "Show setup details"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:744
+msgid "Account:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:746
+msgid "Algorithm:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:747
+msgid "Digits:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:748
+msgid "Period:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:758
+msgid "Verify the code"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:759
+msgid "Enter the 6-digit code your app shows right now:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:764
+msgid "Verify & enable"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:775
+msgid "Save your recovery codes"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:776
+msgid "Store these somewhere safe. Each code works once if you lose access to your authenticator app."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:782
+msgid "These codes will not be shown again."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:796
+msgid "ClamAV connection saved."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:802
+#: includes/admin/class-ps-admin.php:823
+#: includes/admin/class-ps-admin.php:1284
+msgid "ClamAV Antivirus"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:803
+msgid "Add a second malware engine on top of YARA. UAIP Security talks to ClamAV over its socket — no shell access needed — and falls back to the cloud scanner when a local daemon is not reachable."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:804
+msgid "On cPanel:"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:804
+msgid "On a VPS/dedicated server with root, install clamav-daemon and we use it directly. On locked-down shared cPanel (no exec, socket not readable), suspicious files are scanned by the UAIP Security Cloud ClamAV worker instead."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:814
+msgid "Connected via Unix socket"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:815
+msgid "Connected via TCP"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:816
+msgid "Using clamscan binary"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:817
+msgid "Using UAIP Security Cloud worker"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:818
+msgid "No ClamAV reachable"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:827
+msgid "Unavailable"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:833
+msgid "clamd socket (optional)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:833
+msgid "Leave blank to auto-detect. Override for custom cPanel paths, e.g. unix:///var/clamd or tcp://127.0.0.1:3310"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:836
+msgid "Save & test connection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:856
+msgid "Hardening settings applied."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:861
+msgid "Lock down common attack surfaces"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:864
+msgid "Recommended actions"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:869
+msgid "Apply hardening"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:885
+msgid "Permanently delete this file?"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:887
+msgid "Delete"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:903
+msgid "Login page settings saved."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:908
+msgid "Brand your WordPress login screen"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:912
+#: includes/class-ps-features.php:167
+#: includes/class-ps-features.php:174
+msgid "Branding"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:914
+msgid "Enable custom login page"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:914
+msgid "Apply your branding to wp-login.php."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:917
+msgid "Logo"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:917
+msgid "Shown above the login form."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:919
+msgid "Choose image"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:920
+msgid "Remove"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:929
+msgid "Background colour"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:929
+msgid "Top of the page background."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:930
+msgid "Background colour (gradient end)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:930
+msgid "Leave blank for a solid colour."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:931
+msgid "Button colour"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:931
+msgid "The “Log In” button and focus accents."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:934
+msgid "Save login page"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:935
+msgid "Preview (incognito window)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:937
+msgid "Tip: open the preview in a private/incognito window, since you are already logged in here."
+msgstr ""
+
+#. translators: %d: number of events cleared
+#: includes/admin/class-ps-admin.php:962
+#, php-format
+msgid "Audit log cleared (%d events removed)."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:970
+msgid "Security-relevant activity on your site"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:975
+msgid "Clear all local audit log entries? Synced events stay in your cloud activity log."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:982
+msgid "No events recorded yet."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:984
+msgid "Event"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1012
+msgid "Settings saved."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1016
+msgid "Turn protections on or off"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1022
+msgid "Firewall & Traffic"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1023
+msgid "Web Application Firewall"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1023
+msgid "Block SQLi, RCE, XSS and traversal attacks."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1024
+#: includes/class-ps-features.php:46
+msgid "Rate limiting & bot throttling"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1024
+msgid "Slow down scanners and abusive crawlers."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1028
+#: includes/class-ps-features.php:61
+#: includes/class-ps-features.php:68
+#: includes/class-ps-features.php:75
+#: includes/class-ps-features.php:82
+#: includes/class-ps-features.php:89
+msgid "Malware Scanning"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1029
+#: includes/admin/class-ps-admin.php:1442
+msgid "YARA malware scanning"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1029
+msgid "Detect webshells and backdoors in your files."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1033
+#: includes/class-ps-features.php:98
+#: includes/class-ps-features.php:105
+#: includes/class-ps-features.php:112
+msgid "Login Security"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1034
+msgid "Brute-force protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1034
+msgid "Lock out IPs and require a CAPTCHA after repeated failed logins."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1035
+msgid "Block compromised passwords"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1035
+msgid "Stop privileged users signing in with a known-breached password."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1043
+#: includes/class-ps-features.php:106
+msgid "Two-factor authentication (TOTP)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1044
+msgid "Require a one-time code at login. Set up per user account."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1046
+msgid "Status: active on your account."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1047
+msgid "Status: not set up on your account."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1052
+msgid "Manage"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1052
+#: includes/admin/class-ps-admin.php:1373
+msgid "Set up 2FA"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1057
+#: includes/class-ps-features.php:128
+msgid "Auditing"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1058
+msgid "Activity audit log"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1058
+msgid "Record logins, plugin and theme changes."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1063
+msgid "Monitoring & Alerts"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1064
+msgid "Traffic anomaly email alerts"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1064
+msgid "Get notified when traffic or login patterns look abnormal."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1065
+msgid "Alert email"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1065
+msgid "Where to send security notifications."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1071
+msgid "Data & Uninstall"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1074
+msgid "Delete all data when the plugin is removed"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1075
+msgid "Off by default: deactivating or updating keeps your settings. When ON, deleting the plugin permanently erases all UAIP Security settings, license, 2FA enrollments, scan results and logs. Deactivation never deletes data. Tip: use \"Disconnect\" on the License page first to release your cloud seat."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1081
+msgid "Save settings"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1134
+msgid "Endpoint firewall, malware scanning & login protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1159
+msgid "Improve my score"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1165
+msgid "Attacks blocked (15m)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1166
+msgid "Last scan findings"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1168
+msgid "Cloud"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1168
+msgid "connected"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1168
+msgid "standalone"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1174
+msgid "Protection status"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1186
+msgid "Recent activity"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1190
+msgid "No security events recorded yet. That's a good thing."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1206
+msgid "View full audit log"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1212
+msgid "Recommended next steps"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1232
+msgid "Unlock UAIP Security Pro"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1233
+msgid "ClamAV antivirus, cloud threat intelligence, one-click malware cleanup, geo-blocking, real-time anomaly alerts and a multi-site dashboard."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1237
+msgid "Compare Free vs Pro"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1278
+msgid "Firewall (WAF)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1279
+msgid "Malware Scanner"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1280
+msgid "Login Protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1281
+msgid "Two-Factor Auth"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1285
+msgid "Geo Blocking"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1300
+msgid "Off"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1343
+msgid "Well protected"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1343
+msgid "Your core defenses are active."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1346
+msgid "Needs attention"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1346
+msgid "A few protections are still off."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1348
+msgid "At risk"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1348
+msgid "Turn on protection to secure your site."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1362
+msgid "Enable the firewall"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1363
+msgid "Block SQLi, RCE and XSS attacks at the endpoint."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1366
+msgid "Enable"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1369
+msgid "Turn on two-factor authentication"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1370
+msgid "Stop account takeover even if a password leaks."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1376
+msgid "Run your first malware scan"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1377
+msgid "Scan core, plugins and themes with YARA."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1384
+#: includes/admin/class-ps-admin.php:1562
+msgid "Connect to UAIP Security Cloud"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1385
+msgid "Link your account for the dashboard, cloud activity log and faster rule updates."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1388
+msgid "Connect"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1410
+msgid "Attack blocked"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1411
+#: includes/lib/class-ps-notifier.php:79
+msgid "Malware detected"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1412
+msgid "Failed login"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1413
+msgid "Login"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1414
+msgid "Plugin activated"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1415
+msgid "Plugin deactivated"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1416
+msgid "Theme switched"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1429
+msgid "Free runs standalone. Pro adds cloud power."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1438
+msgid "Standalone protection, no account needed."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1441
+msgid "Endpoint firewall (WAF)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1443
+msgid "Brute-force login protection"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1444
+msgid "Two-factor authentication"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1445
+msgid "Site hardening & audit log"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1450
+#: includes/admin/class-ps-admin.php:1474
+msgid "Your plan"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1455
+msgid "Recommended"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1458
+msgid "Everything in Free, plus cloud scanning & remediation."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1459
+msgid "or $97.20/yr — save 10% when billed annually"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1462
+#: includes/class-ps-features.php:76
+msgid "ClamAV antivirus engine"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1463
+msgid "Cloud threat intelligence (hash reputation)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1464
+msgid "One-click malware cleanup"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1465
+msgid "Real-time anomaly alerts (email)"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1466
+#: includes/class-ps-features.php:53
+msgid "Country / geo blocking"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1467
+#: includes/class-ps-features.php:183
+msgid "Multi-site dashboard & reports"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1479
+msgid "Get Pro"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1481
+msgid "I have a license key"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1490
+msgid "Full feature comparison"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1491
+msgid "Feature"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1503
+msgid "Included"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1528
+msgid "UAIP Security Cloud is a Pro feature"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1529
+msgid "The Free plugin runs fully standalone and never sends data to the cloud. Pro adds your account dashboard, centralized activity log, cloud monitoring, file-hash threat intelligence and faster rule updates. Activate a Pro license below to enable them."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1544
+msgid "Synced with UAIP Security Cloud."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1547
+msgid "Disconnected from UAIP Security Cloud."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1550
+msgid "Could not connect to UAIP Security Cloud. Please try again."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1558
+msgid "Not connected to UAIP Security Cloud"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1559
+msgid "Connect this site to enable your account dashboard, centralized activity log, licence management and Pro features. We verify the request comes from this exact site."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1572
+msgid "live"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1574
+msgid "This site is linked to UAIP Security Cloud and sending heartbeats."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1579
+msgid "Account"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1579
+msgid "Not linked"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1580
+msgid "Last sync"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1581
+msgid "Site ID"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1585
+msgid "This site is not linked to an account yet — connect your account so only you can manage it."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1588
+msgid "Dev Pro simulation is active, so the cloud connection is optional locally."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1593
+msgid "Change account"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1593
+msgid "Connect your account"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1594
+msgid "Sync now"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1595
+msgid "Disconnect"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1595
+msgid "Disconnect this site from UAIP Security Cloud?"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1666
+msgid "Activate UAIP Security Pro on this site"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1675
+msgid "License key"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1681
+msgid "XXXX-XXXX-XXXX-XXXX"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1685
+msgid "Save & Validate"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1693
+msgid "Expired"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1693
+msgid "Inactive"
+msgstr ""
+
+#. translators: %s: plan name
+#: includes/admin/class-ps-admin.php:1700
+#, php-format
+msgid "Plan: %s"
+msgstr ""
+
+#. translators: %s: date
+#: includes/admin/class-ps-admin.php:1705
+#, php-format
+msgid "Expired %s"
+msgstr ""
+
+#. translators: %s: date
+#: includes/admin/class-ps-admin.php:1705
+#, php-format
+msgid "Renews / expires %s"
+msgstr ""
+
+#. translators: 1: seats used, 2: seat limit
+#: includes/admin/class-ps-admin.php:1711
+#, php-format
+msgid "Seats: %1$d / %2$d"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1714
+msgid "Local/dev site — no seat used."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1717
+msgid "Seat limit reached — release a seat or upgrade."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1720
+msgid "Local/staging activation limit reached for this license."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1726
+msgid "Manage subscription"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1730
+msgid "Buy Pro"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1738
+msgid "Don't have the Pro package yet?"
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1739
+msgid "Pro is a separate download. After purchasing, download the UAIP Security Pro package from your account and install it (it replaces this Free build), then enter your license key above to activate."
+msgstr ""
+
+#: includes/admin/class-ps-admin.php:1743
+msgid "Go to my account"
+msgstr ""
+
+#: includes/class-ps-features.php:32
+msgid "Endpoint Web Application Firewall (SQLi/RCE/XSS/LFI)"
+msgstr ""
+
+#: includes/class-ps-features.php:34
+msgid "Local blocking, bundled ruleset"
+msgstr ""
+
+#: includes/class-ps-features.php:35
+msgid "Cloud rule updates every 5 min + virtual patching"
+msgstr ""
+
+#: includes/class-ps-features.php:39
+msgid "Extended protection (auto_prepend, runs before WordPress)"
+msgstr ""
+
+#: includes/class-ps-features.php:41
+msgid "One-click enable"
+msgstr ""
+
+#: includes/class-ps-features.php:56
+msgid "Block or allow by country"
+msgstr ""
+
+#: includes/class-ps-features.php:62
+msgid "Core/plugin/theme integrity vs WordPress.org"
+msgstr ""
+
+#: includes/class-ps-features.php:69
+msgid "YARA malware/webshell scanning"
+msgstr ""
+
+#: includes/class-ps-features.php:71
+msgid "Binary or PHP-lite fallback, bundled ruleset"
+msgstr ""
+
+#: includes/class-ps-features.php:72
+msgid "Premium & private YARA rules"
+msgstr ""
+
+#: includes/class-ps-features.php:79
+msgid "Local clamd or cloud ClamAV worker"
+msgstr ""
+
+#: includes/class-ps-features.php:83
+msgid "Cloud threat intelligence (file-hash reputation)"
+msgstr ""
+
+#: includes/class-ps-features.php:86
+msgid "Flag known malware by hash (only hashes leave your site)"
+msgstr ""
+
+#: includes/class-ps-features.php:90
+msgid "Malware removal"
+msgstr ""
+
+#: includes/class-ps-features.php:92
+msgid "Manual repair / delete flagged files"
+msgstr ""
+
+#: includes/class-ps-features.php:93
+msgid "One-click automatic & unlimited cleanup"
+msgstr ""
+
+#: includes/class-ps-features.php:99
+msgid "Brute-force lockouts + CAPTCHA"
+msgstr ""
+
+#: includes/class-ps-features.php:102
+msgid "Bot fingerprinting"
+msgstr ""
+
+#: includes/class-ps-features.php:109
+msgid "Enforced per-role policies"
+msgstr ""
+
+#: includes/class-ps-features.php:113
+msgid "Breached-password blocking"
+msgstr ""
+
+#: includes/class-ps-features.php:115
+msgid "Local k-anonymity list"
+msgstr ""
+
+#: includes/class-ps-features.php:116
+msgid "Live breach database"
+msgstr ""
+
+#: includes/class-ps-features.php:122
+msgid "Site hardening (.htaccess, disable editor, block PHP in uploads)"
+msgstr ""
+
+#: includes/class-ps-features.php:129
+msgid "Security activity audit log"
+msgstr ""
+
+#: includes/class-ps-features.php:131
+msgid "Local, 30-day"
+msgstr ""
+
+#: includes/class-ps-features.php:132
+msgid "Cloud activity log, unlimited retention, multi-site"
+msgstr ""
+
+#: includes/class-ps-features.php:137
+#: includes/class-ps-features.php:144
+#: includes/class-ps-features.php:151
+#: includes/class-ps-features.php:158
+msgid "Cloud Monitoring"
+msgstr ""
+
+#: includes/class-ps-features.php:138
+msgid "Traffic anomaly auto-notifications"
+msgstr ""
+
+#: includes/class-ps-features.php:140
+msgid "Basic local heuristics, email alerts"
+msgstr ""
+
+#: includes/class-ps-features.php:141
+msgid "Cloud anomaly detection + email alerts"
+msgstr ""
+
+#: includes/class-ps-features.php:145
+msgid "Suspicious code sent to UAIP Security Cloud"
+msgstr ""
+
+#: includes/class-ps-features.php:148
+msgid "Hashes + full sample analysis & sandboxing"
+msgstr ""
+
+#: includes/class-ps-features.php:152
+msgid "Known-vulnerability alerts (CVE matching)"
+msgstr ""
+
+#: includes/class-ps-features.php:155
+msgid "Real-time CVE alerts + auto virtual patch"
+msgstr ""
+
+#: includes/class-ps-features.php:159
+msgid "Connect to your UAIP Security Cloud account"
+msgstr ""
+
+#: includes/class-ps-features.php:162
+msgid "Account dashboard, activity log & licence in one place"
+msgstr ""
+
+#: includes/class-ps-features.php:168
+msgid "Custom login page (logo, colours, custom CSS)"
+msgstr ""
+
+#: includes/class-ps-features.php:170
+msgid "White-label your wp-login.php"
+msgstr ""
+
+#: includes/class-ps-features.php:175
+msgid "White-label cloud reports"
+msgstr ""
+
+#: includes/class-ps-features.php:178
+msgid "Agency plan"
+msgstr ""
+
+#: includes/class-ps-features.php:182
+#: includes/class-ps-features.php:189
+#: includes/class-ps-features.php:196
+msgid "Management"
+msgstr ""
+
+#: includes/class-ps-features.php:186
+msgid "Manage all your sites from UAIP Security Cloud"
+msgstr ""
+
+#: includes/class-ps-features.php:190
+msgid "Self-service billing & invoices"
+msgstr ""
+
+#: includes/class-ps-features.php:193
+msgid "Stripe customer portal"
+msgstr ""
+
+#: includes/class-ps-features.php:197
+msgid "Uptime & performance monitoring"
+msgstr ""
+
+#. translators: %s: human-readable time difference, e.g. "2 minutes"
+#: includes/class-ps-plugin.php:141
+#, php-format
+msgid "%s ago"
+msgstr ""
+
+#: includes/cloud/class-ps-cloud-api.php:192
+msgid "Site is not connected to UAIP Security Cloud."
+msgstr ""
+
+#. translators: %s: site url
+#: includes/lib/class-ps-notifier.php:50
+#, php-format
+msgid "Sent by UAIP Security Firewall on %s"
+msgstr ""
+
+#. translators: %d: number of issues
+#: includes/lib/class-ps-notifier.php:74
+#, php-format
+msgid "UAIP Security found %d potential security issue:"
+msgid_plural "UAIP Security found %d potential security issues:"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: admin page URL
+#: includes/lib/class-ps-notifier.php:78
+#, php-format
+msgid "Review them here: %s"
+msgstr ""
+
+#. translators: %d: number of blocked attacks
+#: includes/lib/class-ps-notifier.php:90
+#, php-format
+msgid "UAIP Security blocked %d attacks in the last 15 minutes — your site may be under attack."
+msgstr ""
+
+#. translators: %s: admin page URL
+#: includes/lib/class-ps-notifier.php:94
+#, php-format
+msgid "Firewall activity: %s"
+msgstr ""
+
+#: includes/lib/class-ps-notifier.php:95
+msgid "Attack surge detected"
+msgstr ""
+
+#. translators: 1: username, 2: ip
+#: includes/lib/class-ps-notifier.php:107
+#, php-format
+msgid "Administrator \"%1$s\" just signed in from IP %2$s."
+msgstr ""
+
+#: includes/lib/class-ps-notifier.php:112
+msgid "Administrator login"
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:38
+msgid "Disable the plugin/theme file editor"
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:39
+msgid "Stops attackers (and accidents) editing PHP from wp-admin."
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:42
+msgid "Hide the WordPress version"
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:43
+msgid "Removes the version meta tag and generator output."
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:46
+msgid "Block PHP execution in uploads"
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:47
+msgid "Writes an .htaccess rule so uploaded files cannot run as PHP."
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:50
+msgid "Disable XML-RPC"
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:51
+msgid "Blocks a common brute-force and DDoS amplification vector."
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:91
+msgid "The uploads directory is not writable."
+msgstr ""
+
+#: includes/modules/class-ps-hardening.php:94
+msgid "Could not write .htaccess."
+msgstr ""
+
+#: includes/modules/class-ps-login-guard.php:51
+msgid "<strong>Locked out.</strong> Too many failed attempts. Try again later."
+msgstr ""
+
+#: includes/modules/class-ps-login-guard.php:61
+msgid "<strong>Verification needed.</strong> Please answer the security question correctly."
+msgstr ""
+
+#. translators: 1: first number, 2: second number
+#: includes/modules/class-ps-login-guard.php:87
+#, php-format
+msgid "Security check: what is %1$d + %2$d?"
+msgstr ""
+
+#. translators: %s: lost password url
+#: includes/modules/class-ps-login-guard.php:124
+#, php-format
+msgid "<strong>Password change required.</strong> Your password appears on a list of compromised passwords. Please <a href=\"%s\">reset it</a> before signing in."
+msgstr ""
+
+#. translators: %s: malware family/label
+#: includes/modules/class-ps-scanner.php:351
+#, php-format
+msgid "Known malware: %s (cloud threat intelligence)"
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:352
+msgid "Known malware (cloud threat intelligence)"
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:409
+msgid "Core file differs from the official WordPress release"
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:546
+#: includes/modules/class-ps-scanner.php:574
+msgid "File not found or not allowed."
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:552
+msgid "Could not move the file. Check permissions."
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:578
+msgid "Could not delete the file. Check permissions."
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:596
+msgid "Unknown quarantine entry."
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:606
+msgid "Restore target is outside the allowed directory."
+msgstr ""
+
+#: includes/modules/class-ps-scanner.php:611
+msgid "Could not restore the file."
+msgstr ""
+
+#: includes/modules/class-ps-twofa.php:105
+msgid "Start the setup again."
+msgstr ""
+
+#: includes/modules/class-ps-twofa.php:108
+msgid "That code is not correct. Check your authenticator app and try again."
+msgstr ""
+
+#: includes/modules/class-ps-twofa.php:217
+msgid "<strong>Two-factor required.</strong> Enter the 6-digit code from your authenticator app."
+msgstr ""
+
+#: includes/modules/class-ps-twofa.php:235
+msgid "<strong>Invalid code.</strong> Try the current code from your app, or a recovery code."
+msgstr ""
+
+#: includes/modules/class-ps-twofa.php:261
+msgid "Authentication code"
+msgstr ""
+
+#: includes/modules/class-ps-twofa.php:262
+msgid "if enabled"
+msgstr ""
+
+#: includes/modules/class-ps-waf.php:175
+msgid "Request blocked"
+msgstr ""
+
+#: includes/modules/class-ps-waf.php:176
+msgid "Your request was blocked by UAIP Security Firewall because it matched a malicious pattern."
+msgstr ""
+
+#. translators: %s: reference id
+#: includes/modules/class-ps-waf.php:179
+#, php-format
+msgid "If you believe this is a mistake, contact the site administrator with reference %s."
+msgstr ""
+
+#: includes/modules/class-ps-waf.php:237
+msgid "Too many requests. Please slow down and try again shortly."
+msgstr ""
+
+#: includes/modules/class-ps-waf.php:238
+msgid "Rate limited"
+msgstr ""
+
+#: pro/class-ps-waf-installer.php:62
+msgid "The WordPress root directory is not writable, so extended protection cannot be installed."
+msgstr ""
+
+#: pro/class-ps-waf-installer.php:68
+msgid "Could not write the firewall loader."
+msgstr ""
+
+#. translators: %s: ClamAV signature name
+#: pro/modules/class-ps-clamav.php:290
+#, php-format
+msgid "ClamAV detected a known threat: %s"
+msgstr ""
+
+#: pro/modules/class-ps-geo-blocking.php:244
+msgid "Not available in your region"
+msgstr ""
+
+#: pro/modules/class-ps-geo-blocking.php:245
+msgid "Access to this site is restricted in your location."
+msgstr ""

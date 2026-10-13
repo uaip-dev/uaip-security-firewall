@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "updated": "2026-06-29",
+  "threshold": 5,
+  "rules": [
+    {
+      "id": "sfw-sqli-001", "class": "sqli", "severity": "critical", "score": 10,
+      "msg": "SQLi: UNION SELECT",
+      "targets": ["query","body","uri","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls","strip_comments"],
+      "pattern": "union\\s+(all\\s+)?select", "flags": "i"
+    },
+    {
+      "id": "sfw-sqli-002", "class": "sqli", "severity": "critical", "score": 10,
+      "msg": "SQLi: boolean tautology (OR 1=1)",
+      "targets": ["query","body","uri"],
+      "transform": ["urldecode","lowercase","remove_nulls","compress_whitespace"],
+      "pattern": "\\b(or|and)\\b\\s+['\"]?\\d+['\"]?\\s*=\\s*['\"]?\\d+", "flags": "i"
+    },
+    {
+      "id": "sfw-sqli-003", "class": "sqli", "severity": "high", "score": 5,
+      "msg": "SQLi: stacked query / common functions",
+      "targets": ["query","body"],
+      "transform": ["urldecode","lowercase","remove_nulls","strip_comments"],
+      "pattern": "(sleep\\s*\\(|benchmark\\s*\\(|load_file\\s*\\(|into\\s+outfile|information_schema)", "flags": "i"
+    },
+    {
+      "id": "sfw-sqli-004", "class": "sqli", "severity": "medium", "score": 3,
+      "msg": "SQLi: SQL comment / terminator",
+      "targets": ["query","body"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "(--\\s|#|;)\\s*(drop|select|update|delete|insert)\\b", "flags": "i"
+    },
+    {
+      "id": "sfw-xss-001", "class": "xss", "severity": "critical", "score": 10,
+      "msg": "XSS: <script> tag",
+      "targets": ["query","body","uri","referer"],
+      "transform": ["urldecode","lowercase","remove_nulls","html_decode"],
+      "pattern": "<script\\b[^>]*>", "flags": "i"
+    },
+    {
+      "id": "sfw-xss-002", "class": "xss", "severity": "high", "score": 5,
+      "msg": "XSS: javascript: URI or event handler",
+      "targets": ["query","body","uri"],
+      "transform": ["urldecode","lowercase","remove_nulls","html_decode"],
+      "pattern": "(javascript:|on(error|load|click|mouseover|focus)\\s*=)", "flags": "i"
+    },
+    {
+      "id": "sfw-xss-003", "class": "xss", "severity": "medium", "score": 3,
+      "msg": "XSS: risky HTML element",
+      "targets": ["query","body"],
+      "transform": ["urldecode","lowercase","remove_nulls","html_decode"],
+      "pattern": "<(iframe|svg|img|object|embed|base)\\b", "flags": "i"
+    },
+    {
+      "id": "sfw-rce-001", "class": "rce", "severity": "critical", "score": 10,
+      "msg": "RCE: PHP code execution functions",
+      "targets": ["query","body","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "\\b(system|exec|shell_exec|passthru|popen|proc_open|pcntl_exec)\\s*\\(", "flags": "i"
+    },
+    {
+      "id": "sfw-rce-002", "class": "rce", "severity": "critical", "score": 10,
+      "msg": "RCE: eval / assert / code-eval primitives",
+      "targets": ["query","body","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "\\b(eval|assert|create_function|call_user_func(_array)?)\\s*\\(", "flags": "i"
+    },
+    {
+      "id": "sfw-rce-003", "class": "rce", "severity": "high", "score": 5,
+      "msg": "RCE: shell metacharacters with command",
+      "targets": ["query","body"],
+      "transform": ["urldecode","remove_nulls"],
+      "pattern": "[;|`]\\s*(cat|ls|id|whoami|uname|wget|curl|nc|bash|sh)\\b", "flags": "i"
+    },
+    {
+      "id": "sfw-lfi-001", "class": "lfi", "severity": "critical", "score": 10,
+      "msg": "LFI/Traversal: ../ sequences",
+      "targets": ["query","body","uri","cookies"],
+      "transform": ["urldecode","remove_nulls"],
+      "pattern": "(\\.\\./|\\.\\.\\\\){2,}", "flags": "i"
+    },
+    {
+      "id": "sfw-lfi-002", "class": "lfi", "severity": "high", "score": 5,
+      "msg": "LFI: sensitive file access",
+      "targets": ["query","body","uri"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "(/etc/passwd|/etc/shadow|/proc/self/environ|boot\\.ini|win\\.ini|wp-config\\.php)", "flags": "i"
+    },
+    {
+      "id": "sfw-rfi-001", "class": "rfi", "severity": "high", "score": 5,
+      "msg": "RFI: remote include URL parameter",
+      "targets": ["query","body"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "=\\s*(https?|ftp|php|data|expect)://", "flags": "i"
+    },
+    {
+      "id": "sfw-php-001", "class": "php_injection", "severity": "high", "score": 5,
+      "msg": "PHP: wrapper / object injection",
+      "targets": ["query","body","cookies"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "(php://(filter|input)|phar://|zip://|O:\\d+:\")", "flags": "i"
+    },
+    {
+      "id": "sfw-upload-001", "class": "upload", "severity": "high", "score": 5,
+      "msg": "Upload: PHP payload signature in body",
+      "targets": ["body"],
+      "transform": ["urldecode","lowercase","remove_nulls"],
+      "pattern": "<\\?php\\b", "flags": "i"
+    },
+    {
+      "id": "sfw-scanner-001", "class": "scanner", "severity": "medium", "score": 5,
+      "msg": "Scanner: known security tool user-agent",
+      "targets": ["ua"],
+      "transform": ["lowercase"],
+      "pattern": "(sqlmap|nikto|nmap|acunetix|nessus|masscan|wpscan|dirbuster|gobuster|hydra|havij|fimap)", "flags": "i"
+    },
+    {
+      "id": "sfw-scanner-002", "class": "scanner", "severity": "low", "score": 3,
+      "msg": "Scanner: empty or suspicious user-agent on POST",
+      "targets": ["ua"],
+      "transform": ["lowercase"],
+      "pattern": "^(|-|python-requests|curl|libwww-perl|go-http-client)$", "flags": "i"
+    },
+    {
+      "id": "sfw-traversal-encoded", "class": "lfi", "severity": "high", "score": 5,
+      "msg": "Traversal: encoded dot-dot",
+      "targets": ["query","body","uri"],
+      "transform": ["lowercase","remove_nulls"],
+      "pattern": "(%2e%2e%2f|%2e%2e/|\\.\\.%2f|%252e%252e)", "flags": "i"
+    },
+    {
+      "id": "sfw-wp-001", "class": "wp", "severity": "medium", "score": 3,
+      "msg": "WordPress: user enumeration via author param",
+      "targets": ["uri"],
+      "transform": ["urldecode","lowercase"],
+      "pattern": "[?&]author=\\d+", "flags": "i"
+    }
+  ]
+}

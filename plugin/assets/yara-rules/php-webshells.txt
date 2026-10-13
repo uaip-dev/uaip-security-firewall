@@ -1,0 +1,128 @@
+/*
+   UAIP Security bundled YARA ruleset — PHP webshells & backdoors (starter set).
+   Identifiers are lowercase for Uaip_Sfw_Yara_Lite compatibility.
+*/
+
+rule sfw_eval_base64
+{
+    meta:
+        description = "eval() of base64-decoded data (classic PHP backdoor)"
+        severity = "critical"
+    strings:
+        $eval = "eval(" nocase
+        $b64  = "base64_decode(" nocase
+    condition:
+        $eval and $b64
+}
+
+rule sfw_exec_from_request
+{
+    meta:
+        description = "Shell command execution from an HTTP request parameter"
+        severity = "critical"
+    strings:
+        $a = /\b(system|exec|shell_exec|passthru|popen|proc_open)\s*\(\s*\$_(get|post|request|cookie|server)/ nocase
+    condition:
+        $a
+}
+
+rule sfw_assert_request
+{
+    meta:
+        description = "assert() executing request input"
+        severity = "high"
+    strings:
+        $a = /assert\s*\(\s*\$_(get|post|request|cookie)/ nocase
+    condition:
+        $a
+}
+
+rule sfw_preg_replace_eval
+{
+    meta:
+        description = "preg_replace() with the /e modifier (code execution)"
+        severity = "high"
+    strings:
+        $a = /preg_replace\s*\(\s*["'][^"']*\/e["']/ nocase
+    condition:
+        $a
+}
+
+rule sfw_obfuscation_layered
+{
+    meta:
+        description = "Layered obfuscation (gzinflate/str_rot13/gzuncompress) feeding eval"
+        severity = "high"
+    strings:
+        $eval = "eval("        nocase
+        $a    = "gzinflate("   nocase
+        $b    = "str_rot13("   nocase
+        $c    = "gzuncompress(" nocase
+        $d    = "base64_decode(" nocase
+    condition:
+        $eval and 2 of ($a, $b, $c, $d)
+}
+
+rule sfw_create_function_backdoor
+{
+    meta:
+        description = "create_function() built from request input"
+        severity = "high"
+    strings:
+        $a = "create_function(" nocase
+        $b = /\$_(get|post|request|cookie)/ nocase
+    condition:
+        all of them
+}
+
+rule sfw_known_shell_markers
+{
+    meta:
+        description = "Known webshell fingerprints (c99/r57/WSO/b374k/FilesMan)"
+        severity = "critical"
+    strings:
+        $a = "FilesMan"
+        $b = "c99shell"  nocase
+        $c = "r57shell"  nocase
+        $d = "wsoshell"  nocase
+        $e = "b374k"     nocase
+        $f = "by orb"    nocase
+    condition:
+        any of them
+}
+
+rule sfw_uploader_base64
+{
+    meta:
+        description = "File uploader writing decoded content (possible dropper)"
+        severity = "medium"
+    strings:
+        $a = "move_uploaded_file(" nocase
+        $b = /\$_files/ nocase
+        $c = "base64_decode(" nocase
+    condition:
+        ($a and $b) and $c
+}
+
+rule sfw_callback_obfuscation
+{
+    meta:
+        description = "Dynamic callback executing request input (call_user_func)"
+        severity = "high"
+    strings:
+        $a = /call_user_func(_array)?\s*\(\s*\$_(get|post|request)/ nocase
+    condition:
+        $a
+}
+
+rule sfw_hex_eval_marker
+{
+    meta:
+        description = "eval marker present as raw bytes"
+        severity = "medium"
+    strings:
+        $h = { 65 76 61 6C 28 }   // "eval("
+        $b = "base64_decode(" nocase
+    condition:
+        $h and $b
+}

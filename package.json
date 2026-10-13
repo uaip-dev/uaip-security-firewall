@@ -1,0 +1,14 @@
+{
+  "name": "uaip-security-firewall",
+  "private": true,
+  "version": "0.2.0",
+  "description": "UAIP Security Firewall for WordPress: web application firewall, malware scanner, login protection and two-factor authentication.",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "zip": "node scripts/make-zip.mjs"
+  }
+}
