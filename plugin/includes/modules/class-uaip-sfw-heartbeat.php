@@ -1,8 +1,7 @@
 <?php
 /**
- * Cloud heartbeat — periodic check-in that powers anomaly detection, uptime
- * monitoring and rule freshness. Free sends a light payload; the cloud decides
- * what to alert on.
+ * Cloud heartbeat: a 15-minute check-in, scheduled only while the site has an
+ * active licence and a cloud connection. Nothing runs or is sent otherwise.
  *
  * @package UaipSecurityFirewall
  */
@@ -15,6 +14,22 @@ class Uaip_Sfw_Heartbeat {
 
 	public function register_hooks() {
 		add_action( 'uaip_sfw_heartbeat', array( $this, 'run' ) );
+		add_action( 'init', array( $this, 'sync_schedule' ) );
+	}
+
+	/** @return bool The heartbeat should run. */
+	public static function wanted() {
+		return Uaip_Sfw_Plugin::instance()->license->is_pro() && Uaip_Sfw_Cloud_API::instance()->is_connected();
+	}
+
+	/** Schedule or clear the cron event to match wanted(). */
+	public function sync_schedule() {
+		$next = wp_next_scheduled( 'uaip_sfw_heartbeat' );
+		if ( self::wanted() && ! $next ) {
+			wp_schedule_event( time() + 60, 'uaip_sfw_quarter_hour', 'uaip_sfw_heartbeat' );
+		} elseif ( ! self::wanted() && $next ) {
+			wp_clear_scheduled_hook( 'uaip_sfw_heartbeat' );
+		}
 	}
 
 	public function run() {

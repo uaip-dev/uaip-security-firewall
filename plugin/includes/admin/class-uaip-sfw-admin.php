@@ -100,24 +100,6 @@ class Uaip_Sfw_Admin {
 			);
 			wp_add_inline_script( 'uaip-sfw-admin', 'window.uaipSfwConn=' . $cfg . ';' . $this->connection_poll_js() );
 		}
-
-		// Color picker + media uploader for the Login Page customizer.
-		if ( false !== strpos( (string) $hook, 'uaip-sfw-login' ) ) {
-			wp_enqueue_style( 'wp-color-picker' );
-			wp_enqueue_script( 'wp-color-picker' );
-			wp_enqueue_media();
-			wp_add_inline_script(
-				'wp-color-picker',
-				"jQuery(function($){"
-				. "$('.uaip-sfw-color').wpColorPicker();"
-				. "$('#uaip-sfw-logo-upload').on('click',function(e){e.preventDefault();"
-				. "var f=wp.media({title:'Select a logo',button:{text:'Use this logo'},multiple:false});"
-				. "f.on('select',function(){var a=f.state().get('selection').first().toJSON();"
-				. "$('#login_logo_url').val(a.url);$('#uaip-sfw-logo-preview').attr('src',a.url).css('display','block');});f.open();});"
-				. "$('#uaip-sfw-logo-remove').on('click',function(e){e.preventDefault();$('#login_logo_url').val('');$('#uaip-sfw-logo-preview').hide();});"
-				. "});"
-			);
-		}
 	}
 
 	public function menu() {
@@ -128,10 +110,16 @@ class Uaip_Sfw_Admin {
 		add_submenu_page( 'uaip-sfw', __( 'Scan', 'uaip-security-firewall' ), __( 'Scan', 'uaip-security-firewall' ), $cap, 'uaip-sfw-scan', array( $this, 'page_scan' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Activity Log', 'uaip-security-firewall' ), __( 'Activity Log', 'uaip-security-firewall' ), $cap, 'uaip-sfw-audit', array( $this, 'page_audit' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Hardening', 'uaip-security-firewall' ), __( 'Hardening', 'uaip-security-firewall' ), $cap, 'uaip-sfw-hardening', array( $this, 'page_hardening' ) );
-		add_submenu_page( 'uaip-sfw', __( 'Login Page', 'uaip-security-firewall' ), __( 'Login Page', 'uaip-security-firewall' ), $cap, 'uaip-sfw-login', array( $this, 'page_login_brand' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Settings', 'uaip-security-firewall' ), __( 'Settings', 'uaip-security-firewall' ), $cap, 'uaip-sfw-settings', array( $this, 'page_settings' ) );
-		add_submenu_page( 'uaip-sfw', __( 'Plans & Upgrade', 'uaip-security-firewall' ), __( 'Plans & Upgrade', 'uaip-security-firewall' ), $cap, 'uaip-sfw-plans', array( $this, 'page_plans' ) );
-		add_submenu_page( 'uaip-sfw', __( 'License', 'uaip-security-firewall' ), __( 'License', 'uaip-security-firewall' ), $cap, 'uaip-sfw-license', array( $this, 'page_license' ) );
+		// Cloud and licence screen: only for the Pro package or an existing connection.
+		if ( self::cloud_screen_available() ) {
+			add_submenu_page( 'uaip-sfw', __( 'Cloud & Licence', 'uaip-security-firewall' ), __( 'Cloud & Licence', 'uaip-security-firewall' ), $cap, 'uaip-sfw-license', array( $this, 'page_license' ) );
+		}
+	}
+
+	/** @return bool Show the cloud and licence screen. */
+	public static function cloud_screen_available() {
+		return UAIP_SFW_HAS_PRO_PACKAGE || Uaip_Sfw_Cloud_API::instance()->is_connected();
 	}
 
 	// -----------------------------------------------------------------
@@ -145,22 +133,6 @@ class Uaip_Sfw_Admin {
 	 * @param string $subtitle
 	 * @param string $icon Dashicon class.
 	 */
-	/**
-	 * Public UAIP Security Cloud pricing URL, pre-filled with this site's context
-	 * so checkout can bind the purchase to the right install/email.
-	 *
-	 * @return string
-	 */
-	private function cloud_pricing_url() {
-		return add_query_arg(
-			array(
-				'site'  => rawurlencode( home_url() ),
-				'email' => rawurlencode( get_option( 'admin_email' ) ),
-			),
-			UAIP_SFW_CLOUD_SITE . '/pricing'
-		);
-	}
-
 	/**
 	 * Renew / manage subscription — the cloud account (Stripe billing portal +
 	 * invoices live there).
@@ -179,7 +151,9 @@ class Uaip_Sfw_Admin {
 			echo '<p class="uaip-sfw-sub">' . esc_html( $subtitle ) . '</p>';
 		}
 		echo '</div></div>';
-		printf( '<span class="uaip-sfw-tier uaip-sfw-tier-%1$s">%2$s</span>', esc_attr( $tier ), esc_html( strtoupper( $tier ) ) );
+		if ( UAIP_SFW_HAS_PRO_PACKAGE ) {
+			printf( '<span class="uaip-sfw-tier uaip-sfw-tier-%1$s">%2$s</span>', esc_attr( $tier ), esc_html( strtoupper( $tier ) ) );
+		}
 		echo '</div>';
 	}
 
@@ -431,7 +405,7 @@ class Uaip_Sfw_Admin {
 	}
 
 	/**
-	 * Country / geo-blocking card (Pro), with resolver guidance.
+	 * Country blocking card, shown only when the Pro geo module is loaded.
 	 */
 	private function render_geo_card() {
 		$is_pro = $this->plugin->license->is_pro();
@@ -449,11 +423,6 @@ class Uaip_Sfw_Admin {
 		}
 
 		if ( ! $is_pro || ! $geo ) {
-			echo '<div class="uaip-sfw-card uaip-sfw-mod-locked" style="border-left:4px solid #f0b429;margin-top:18px;">';
-			echo '<h2 style="display:flex;align-items:center;gap:8px;"><span class="dashicons dashicons-admin-site"></span> ' . esc_html__( 'Country / Geo Blocking', 'uaip-security-firewall' ) . ' <span class="uaip-sfw-badge uaip-sfw-badge-locked">' . esc_html__( 'Pro', 'uaip-security-firewall' ) . '</span></h2>';
-			echo '<p>' . esc_html__( 'Block or allow visitors by country. UAIP Security resolves the visitor\'s country from your CDN headers (e.g. Cloudflare) or the UAIP Security Cloud — no database to install.', 'uaip-security-firewall' ) . '</p>';
-			printf( '<a class="button button-primary" href="%s">%s</a>', esc_url( admin_url( 'admin.php?page=uaip-sfw-plans' ) ), esc_html__( 'Upgrade to Pro', 'uaip-security-firewall' ) );
-			echo '</div>';
 			return;
 		}
 
@@ -722,7 +691,7 @@ class Uaip_Sfw_Admin {
 	}
 
 	/**
-	 * ClamAV antivirus status / configuration card (Pro), with cPanel guidance.
+	 * ClamAV status card, shown only when the Pro ClamAV module is loaded.
 	 */
 	private function render_clamav_card() {
 		$is_pro = $this->plugin->license->is_pro();
@@ -735,13 +704,6 @@ class Uaip_Sfw_Admin {
 		}
 
 		if ( ! $is_pro || ! $clamav ) {
-			// Free: locked card with cPanel explanation.
-			echo '<div class="uaip-sfw-card uaip-sfw-mod-locked" style="border-left:4px solid #f0b429;">';
-			echo '<h2 style="display:flex;align-items:center;gap:8px;"><span class="dashicons dashicons-shield-alt"></span> ' . esc_html__( 'ClamAV Antivirus', 'uaip-security-firewall' ) . ' <span class="uaip-sfw-badge uaip-sfw-badge-locked">' . esc_html__( 'Pro', 'uaip-security-firewall' ) . '</span></h2>';
-			echo '<p>' . esc_html__( 'Add a second malware engine on top of YARA. UAIP Security talks to ClamAV over its socket — no shell access needed — and falls back to the cloud scanner when a local daemon is not reachable.', 'uaip-security-firewall' ) . '</p>';
-			echo '<p><strong>' . esc_html__( 'On cPanel:', 'uaip-security-firewall' ) . '</strong> ' . esc_html__( 'On a VPS/dedicated server with root, install clamav-daemon and we use it directly. On locked-down shared cPanel (no exec, socket not readable), suspicious files are scanned by the UAIP Security Cloud ClamAV worker instead.', 'uaip-security-firewall' ) . '</p>';
-			printf( '<a class="button button-primary" href="%s">%s</a>', esc_url( admin_url( 'admin.php?page=uaip-sfw-plans' ) ), esc_html__( 'Upgrade to Pro', 'uaip-security-firewall' ) );
-			echo '</div>';
 			return;
 		}
 
@@ -863,68 +825,6 @@ class Uaip_Sfw_Admin {
 		echo '</div></div>';
 	}
 
-	/**
-	 * Login Page customizer — clients brand their own wp-login.php.
-	 */
-	public function page_login_brand() {
-		if ( isset( $_POST['uaip_sfw_login_save'] ) && check_admin_referer( 'uaip_sfw_login_brand' ) && current_user_can( 'manage_options' ) ) {
-			Uaip_Sfw_Settings::update( array(
-				'login_brand_enabled' => ! empty( $_POST['login_brand_enabled'] ),
-				'login_logo_url'      => isset( $_POST['login_logo_url'] ) ? esc_url_raw( wp_unslash( $_POST['login_logo_url'] ) ) : '',
-				'login_bg_from'       => isset( $_POST['login_bg_from'] ) ? sanitize_hex_color( wp_unslash( $_POST['login_bg_from'] ) ) : '',
-				'login_bg_to'         => isset( $_POST['login_bg_to'] ) ? sanitize_hex_color( wp_unslash( $_POST['login_bg_to'] ) ) : '',
-				'login_button_color'  => isset( $_POST['login_button_color'] ) ? sanitize_hex_color( wp_unslash( $_POST['login_button_color'] ) ) : '',
-			) );
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Login page settings saved.', 'uaip-security-firewall' ) . '</p></div>';
-		}
-
-		$s = Uaip_Sfw_Settings::all();
-		echo '<div class="wrap uaip-sfw-wrap">';
-		$this->header( __( 'Login Page', 'uaip-security-firewall' ), __( 'Brand your WordPress login screen', 'uaip-security-firewall' ), 'dashicons-admin-appearance' );
-
-		echo '<form method="post"><div class="uaip-sfw-card uaip-sfw-set-group">';
-		wp_nonce_field( 'uaip_sfw_login_brand' );
-		echo '<h2><span class="dashicons dashicons-art"></span> ' . esc_html__( 'Branding', 'uaip-security-firewall' ) . '</h2>';
-
-		$this->switch_field( 'login_brand_enabled', __( 'Enable custom login page', 'uaip-security-firewall' ), __( 'Apply your branding to wp-login.php.', 'uaip-security-firewall' ), $s['login_brand_enabled'] );
-
-		// Logo.
-		echo '<div class="uaip-sfw-field" style="align-items:flex-start;"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Logo', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'Shown above the login form.', 'uaip-security-firewall' ) . '</p></div><div>';
-		printf( '<input type="text" id="login_logo_url" name="login_logo_url" class="regular-text" value="%s" placeholder="https://…/logo.png" /> ', esc_attr( $s['login_logo_url'] ) );
-		echo '<button type="button" class="button" id="uaip-sfw-logo-upload">' . esc_html__( 'Choose image', 'uaip-security-firewall' ) . '</button> ';
-		echo '<button type="button" class="button-link" id="uaip-sfw-logo-remove">' . esc_html__( 'Remove', 'uaip-security-firewall' ) . '</button>';
-		printf(
-			'<br><img id="uaip-sfw-logo-preview" src="%s" style="max-height:64px;margin-top:10px;%s" alt="" />',
-			esc_attr( $s['login_logo_url'] ),
-			$s['login_logo_url'] ? '' : 'display:none;'
-		);
-		echo '</div></div>';
-
-		// Colors.
-		$this->color_row( 'login_bg_from', __( 'Background colour', 'uaip-security-firewall' ), __( 'Top of the page background.', 'uaip-security-firewall' ), $s['login_bg_from'] );
-		$this->color_row( 'login_bg_to', __( 'Background colour (gradient end)', 'uaip-security-firewall' ), __( 'Leave blank for a solid colour.', 'uaip-security-firewall' ), $s['login_bg_to'] );
-		$this->color_row( 'login_button_color', __( 'Button colour', 'uaip-security-firewall' ), __( 'The “Log In” button and focus accents.', 'uaip-security-firewall' ), $s['login_button_color'] );
-
-		echo '<p>';
-		submit_button( __( 'Save login page', 'uaip-security-firewall' ), 'primary button-hero', 'uaip_sfw_login_save', false );
-		echo ' <a class="button" href="' . esc_url( wp_login_url() ) . '" target="_blank" rel="noopener">' . esc_html__( 'Preview (incognito window)', 'uaip-security-firewall' ) . '</a>';
-		echo '</p>';
-		echo '<p class="uaip-sfw-empty">' . esc_html__( 'Tip: open the preview in a private/incognito window, since you are already logged in here.', 'uaip-security-firewall' ) . '</p>';
-		echo '</div></form></div>';
-	}
-
-	/** A WP color-picker field row. */
-	private function color_row( $name, $label, $desc, $value ) {
-		echo '<div class="uaip-sfw-field"><div class="uaip-sfw-field-text"><strong>' . esc_html( $label ) . '</strong><p>' . esc_html( $desc ) . '</p></div>';
-		printf(
-			'<input type="text" name="%s" class="uaip-sfw-color" value="%s" data-default-color="%s" />',
-			esc_attr( $name ),
-			esc_attr( $value ),
-			esc_attr( $value )
-		);
-		echo '</div>';
-	}
-
 	public function page_audit() {
 		echo '<div class="wrap uaip-sfw-wrap">';
 		$this->header( __( 'Activity Log', 'uaip-security-firewall' ), __( 'Sign-ins, user and software changes, settings and security events', 'uaip-security-firewall' ), 'dashicons-list-view' );
@@ -978,9 +878,9 @@ class Uaip_Sfw_Admin {
 		// toggle), so reflect THIS user's real state and link to its own page.
 		$twofa_on = $this->twofa_active();
 		echo '<div class="uaip-sfw-card uaip-sfw-set-group">';
-		printf( '<h2><span class="dashicons %s"></span> %s</h2>', 'dashicons-smartphone', esc_html__( 'Two-Factor Authentication', 'uaip-security-firewall' ) );
-		echo '<div class="uaip-sfw-field"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Two-factor authentication (TOTP)', 'uaip-security-firewall' ) . '</strong><p>' .
-			esc_html__( 'Require a one-time code at login. Set up per user account.', 'uaip-security-firewall' ) . ' ' .
+		printf( '<h2><span class="dashicons %s"></span> %s</h2>', 'dashicons-smartphone', esc_html__( 'Two-step verification', 'uaip-security-firewall' ) );
+		echo '<div class="uaip-sfw-field"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Two-step verification', 'uaip-security-firewall' ) . '</strong><p>' .
+			esc_html__( 'Passkeys, authenticator apps and email codes. Each user sets it up; administrators can require it for chosen roles.', 'uaip-security-firewall' ) . ' ' .
 			( $twofa_on
 				? esc_html__( 'Status: active on your account.', 'uaip-security-firewall' )
 				: esc_html__( 'Status: not set up on your account.', 'uaip-security-firewall' ) ) .
@@ -988,7 +888,7 @@ class Uaip_Sfw_Admin {
 		printf(
 			'<a href="%s" class="button">%s</a></div>',
 			esc_url( Uaip_Sfw_Twofa_Page::url() ),
-			$twofa_on ? esc_html__( 'Manage', 'uaip-security-firewall' ) : esc_html__( 'Set up 2FA', 'uaip-security-firewall' )
+			$twofa_on ? esc_html__( 'Manage', 'uaip-security-firewall' ) : esc_html__( 'Set up', 'uaip-security-firewall' )
 		);
 		echo '</div>';
 
@@ -999,8 +899,8 @@ class Uaip_Sfw_Admin {
 
 		// Group: Monitoring & alerts.
 		echo '<div class="uaip-sfw-card uaip-sfw-set-group">';
-		printf( '<h2><span class="dashicons %s"></span> %s</h2>', 'dashicons-cloud', esc_html__( 'Monitoring & Alerts', 'uaip-security-firewall' ) );
-		$this->switch_field( 'anomaly_alerts', __( 'Traffic anomaly email alerts', 'uaip-security-firewall' ), __( 'Get notified when traffic or login patterns look abnormal.', 'uaip-security-firewall' ), $s['anomaly_alerts'] );
+		printf( '<h2><span class="dashicons %s"></span> %s</h2>', 'dashicons-email', esc_html__( 'Email alerts', 'uaip-security-firewall' ) );
+		$this->switch_field( 'anomaly_alerts', __( 'Security email alerts', 'uaip-security-firewall' ), __( 'Email when an administrator signs in, when a scan finds malware, and when the firewall sees a burst of attacks. Each alert is sent at most once an hour.', 'uaip-security-firewall' ), $s['anomaly_alerts'] );
 		echo '<div class="uaip-sfw-field"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Alert email', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'Where to send security notifications.', 'uaip-security-firewall' ) . '</p></div>';
 		printf( '<input type="email" name="alert_email" class="regular-text" value="%s" placeholder="you@example.com" /></div>', esc_attr( $s['alert_email'] ) );
 		echo '</div>';
@@ -1011,7 +911,7 @@ class Uaip_Sfw_Admin {
 		$this->switch_field(
 			'delete_data_on_uninstall',
 			__( 'Delete all data when the plugin is removed', 'uaip-security-firewall' ),
-			__( 'Off by default: deactivating or updating keeps your settings. When ON, deleting the plugin permanently erases all UAIP Security settings, license, 2FA enrollments, scan results and logs. Deactivation never deletes data. Tip: use "Disconnect" on the License page first to release your cloud seat.', 'uaip-security-firewall' ),
+			__( 'Off by default: deactivating or updating keeps your settings. When ON, deleting the plugin permanently erases all UAIP Security settings, license, 2FA enrollments, scan results and logs. Deactivation never deletes data. If this site is connected to UAIP Security Cloud, disconnect it first to release its licence seat.', 'uaip-security-firewall' ),
 			! empty( $s['delete_data_on_uninstall'] )
 		);
 		echo '</div>';
@@ -1071,11 +971,13 @@ class Uaip_Sfw_Admin {
 		echo '<div class="uaip-sfw-header">';
 		echo '<div class="uaip-sfw-header-title"><span class="dashicons dashicons-shield"></span><div><h1>UAIP Security Firewall</h1>';
 		echo '<p class="uaip-sfw-sub">' . esc_html__( 'Endpoint firewall, malware scanning & login protection', 'uaip-security-firewall' ) . '</p></div></div>';
-		printf(
-			'<span class="uaip-sfw-tier uaip-sfw-tier-%1$s">%2$s</span>',
-			esc_attr( $tier ),
-			esc_html( strtoupper( $tier ) )
-		);
+		if ( UAIP_SFW_HAS_PRO_PACKAGE ) {
+			printf(
+				'<span class="uaip-sfw-tier uaip-sfw-tier-%1$s">%2$s</span>',
+				esc_attr( $tier ),
+				esc_html( strtoupper( $tier ) )
+			);
+		}
 		echo '</div>';
 
 		// ---- Top: score + quick stats ----
@@ -1104,7 +1006,7 @@ class Uaip_Sfw_Admin {
 		$this->stat( 'dashicons-shield-alt', __( 'Attacks blocked (15m)', 'uaip-security-firewall' ), $waf && method_exists( $waf, 'recent_block_count' ) ? (int) $waf->recent_block_count() : 0 );
 		$this->stat( 'dashicons-search', __( 'Last scan findings', 'uaip-security-firewall' ), isset( $scan['findings'] ) ? (int) $scan['findings'] : '—' );
 		$this->stat( 'dashicons-admin-tools', __( 'Malware scanner', 'uaip-security-firewall' ), isset( $scan['engine'] ) ? $this->scan_engine_label( $scan['engine'] ) : __( 'pending', 'uaip-security-firewall' ) );
-		$this->stat( 'dashicons-cloud', __( 'Cloud', 'uaip-security-firewall' ), $connected ? __( 'connected', 'uaip-security-firewall' ) : __( 'standalone', 'uaip-security-firewall' ) );
+		$this->stat( 'dashicons-lock', __( 'Failed sign-ins (15m)', 'uaip-security-firewall' ), (int) get_transient( 'uaip_sfw_failed_logins_15m' ) );
 		echo '</div>';
 
 		echo '</div>'; // grid-top
@@ -1165,19 +1067,6 @@ class Uaip_Sfw_Admin {
 
 		echo '</div>'; // grid-bottom
 
-		// ---- Upgrade banner (Free only) ----
-		if ( ! $is_pro ) {
-			echo '<div class="uaip-sfw-upsell">';
-			echo '<div><h2>' . esc_html__( 'Unlock UAIP Security Pro', 'uaip-security-firewall' ) . '</h2>';
-			echo '<p>' . esc_html__( 'ClamAV antivirus, cloud threat intelligence, one-click malware cleanup, geo-blocking, real-time anomaly alerts and a multi-site dashboard.', 'uaip-security-firewall' ) . '</p></div>';
-			printf(
-				'<a class="button button-hero button-primary" href="%s">%s</a>',
-				esc_url( admin_url( 'admin.php?page=uaip-sfw-plans' ) ),
-				esc_html__( 'Compare Free vs Pro', 'uaip-security-firewall' )
-			);
-			echo '</div>';
-		}
-
 		echo '</div>'; // wrap
 	}
 
@@ -1217,21 +1106,15 @@ class Uaip_Sfw_Admin {
 			array( 'key' => 'waf', 'icon' => 'dashicons-shield', 'label' => __( 'Firewall (WAF)', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'waf_enabled' ), 'pro' => false ),
 			array( 'key' => 'scan', 'icon' => 'dashicons-search', 'label' => __( 'Malware Scanner', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'scan_yara_enabled' ), 'pro' => false ),
 			array( 'key' => 'login', 'icon' => 'dashicons-lock', 'label' => __( 'Login Protection', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'login_protection' ), 'pro' => false ),
-			array( 'key' => 'twofa', 'icon' => 'dashicons-smartphone', 'label' => __( 'Two-Factor Auth', 'uaip-security-firewall' ), 'on' => $this->twofa_active(), 'pro' => false ),
+			array( 'key' => 'twofa', 'icon' => 'dashicons-smartphone', 'label' => __( 'Two-step verification', 'uaip-security-firewall' ), 'on' => $this->twofa_active(), 'pro' => false ),
 			array( 'key' => 'hardening', 'icon' => 'dashicons-admin-tools', 'label' => __( 'Hardening', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'harden_disable_editor' ), 'pro' => false ),
 			array( 'key' => 'audit', 'icon' => 'dashicons-list-view', 'label' => __( 'Activity Log', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'audit_log_enabled' ), 'pro' => false ),
-			array( 'key' => 'clamav', 'icon' => 'dashicons-shield-alt', 'label' => __( 'ClamAV Antivirus', 'uaip-security-firewall' ), 'on' => $this->plugin->license->is_pro(), 'pro' => true ),
-			array( 'key' => 'geo', 'icon' => 'dashicons-admin-site', 'label' => __( 'Geo Blocking', 'uaip-security-firewall' ), 'on' => $this->plugin->license->is_pro(), 'pro' => true ),
 		);
 	}
 
 	/** Render one protection module tile. */
 	private function module_card( $m ) {
-		$is_pro = $this->plugin->license->is_pro();
-		if ( $m['pro'] && ! $is_pro ) {
-			$state = 'locked';
-			$text  = __( 'Pro', 'uaip-security-firewall' );
-		} elseif ( $m['on'] ) {
+		if ( $m['on'] ) {
 			$state = 'on';
 			$text  = __( 'Active', 'uaip-security-firewall' );
 		} else {
@@ -1293,11 +1176,11 @@ class Uaip_Sfw_Admin {
 			'cta'   => __( 'Enable', 'uaip-security-firewall' ),
 		);
 		$rec[] = array(
-			'title' => __( 'Turn on two-factor authentication', 'uaip-security-firewall' ),
-			'desc'  => __( 'Stop account takeover even if a password leaks.', 'uaip-security-firewall' ),
+			'title' => __( 'Add a passkey or authenticator app', 'uaip-security-firewall' ),
+			'desc'  => __( 'A leaked password alone is then not enough to sign in.', 'uaip-security-firewall' ),
 			'done'  => ! empty( $on['twofa'] ),
-			'url'   => $set,
-			'cta'   => __( 'Set up 2FA', 'uaip-security-firewall' ),
+			'url'   => Uaip_Sfw_Twofa_Page::url(),
+			'cta'   => __( 'Set up', 'uaip-security-firewall' ),
 		);
 		$rec[] = array(
 			'title' => __( 'Run your first malware scan', 'uaip-security-firewall' ),
@@ -1330,101 +1213,6 @@ class Uaip_Sfw_Admin {
 	}
 
 	// -----------------------------------------------------------------
-	// Plans & Upgrade — rendered straight from the feature registry
-	// -----------------------------------------------------------------
-	public function page_plans() {
-		$features = Uaip_Sfw_Features::all();
-		$is_pro   = $this->plugin->license->is_pro();
-
-		echo '<div class="wrap uaip-sfw-wrap">';
-		$this->header( __( 'Plans & Upgrade', 'uaip-security-firewall' ), __( 'Free runs standalone. Pro adds cloud power.', 'uaip-security-firewall' ), 'dashicons-star-filled' );
-
-		// Pricing cards.
-		echo '<div class="uaip-sfw-pricing">';
-
-		// Free card.
-		echo '<div class="uaip-sfw-price-card ' . ( $is_pro ? '' : 'uaip-sfw-price-current' ) . '">';
-		echo '<div class="uaip-sfw-price-name">Free</div>';
-		echo '<div class="uaip-sfw-price-amount">$0<span>/mo</span></div>';
-		echo '<p class="uaip-sfw-price-tag">' . esc_html__( 'Standalone protection, no account needed.', 'uaip-security-firewall' ) . '</p>';
-		echo '<ul class="uaip-sfw-price-list">';
-		foreach ( array(
-			__( 'Endpoint firewall (WAF)', 'uaip-security-firewall' ),
-			__( 'YARA malware scanning', 'uaip-security-firewall' ),
-			__( 'Brute-force login protection', 'uaip-security-firewall' ),
-			__( 'Two-factor authentication', 'uaip-security-firewall' ),
-			__( 'Site hardening & audit log', 'uaip-security-firewall' ),
-		) as $li ) {
-			echo '<li><span class="dashicons dashicons-yes"></span>' . esc_html( $li ) . '</li>';
-		}
-		echo '</ul>';
-		echo '<div class="uaip-sfw-price-foot">' . ( $is_pro ? '' : '<span class="uaip-sfw-current-badge">' . esc_html__( 'Your plan', 'uaip-security-firewall' ) . '</span>' ) . '</div>';
-		echo '</div>';
-
-		// Pro card.
-		echo '<div class="uaip-sfw-price-card uaip-sfw-price-pro ' . ( $is_pro ? 'uaip-sfw-price-current' : '' ) . '">';
-		echo '<div class="uaip-sfw-price-ribbon">' . esc_html__( 'Recommended', 'uaip-security-firewall' ) . '</div>';
-		echo '<div class="uaip-sfw-price-name">Pro</div>';
-		echo '<div class="uaip-sfw-price-amount">$9<span>/mo</span></div>';
-		echo '<p class="uaip-sfw-price-tag">' . esc_html__( 'Everything in Free, plus cloud scanning & remediation.', 'uaip-security-firewall' ) . '</p>';
-		echo '<p class="uaip-sfw-price-yearly">' . esc_html__( 'or $97.20/yr — save 10% when billed annually', 'uaip-security-firewall' ) . '</p>';
-		echo '<ul class="uaip-sfw-price-list">';
-		foreach ( array(
-			__( 'ClamAV antivirus engine', 'uaip-security-firewall' ),
-			__( 'Cloud threat intelligence (hash reputation)', 'uaip-security-firewall' ),
-			__( 'One-click malware cleanup', 'uaip-security-firewall' ),
-			__( 'Real-time anomaly alerts (email)', 'uaip-security-firewall' ),
-			__( 'Country / geo blocking', 'uaip-security-firewall' ),
-			__( 'Multi-site dashboard & reports', 'uaip-security-firewall' ),
-		) as $li ) {
-			echo '<li><span class="dashicons dashicons-yes"></span>' . esc_html( $li ) . '</li>';
-		}
-		echo '</ul>';
-		echo '<div class="uaip-sfw-price-foot">';
-		if ( $is_pro ) {
-			echo '<span class="uaip-sfw-current-badge uaip-sfw-current-pro">' . esc_html__( 'Your plan', 'uaip-security-firewall' ) . '</span>';
-		} else {
-			printf(
-				'<a class="button button-hero button-primary" href="%s" target="_blank">%s</a><a class="uaip-sfw-link" href="%s">%s</a>',
-				esc_url( $this->cloud_pricing_url() ),
-				esc_html__( 'Get Pro', 'uaip-security-firewall' ),
-				esc_url( admin_url( 'admin.php?page=uaip-sfw-license' ) ),
-				esc_html__( 'I have a license key', 'uaip-security-firewall' )
-			);
-		}
-		echo '</div>';
-		echo '</div>';
-
-		echo '</div>'; // pricing
-
-		// Detailed comparison table.
-		echo '<div class="uaip-sfw-card"><h2>' . esc_html__( 'Full feature comparison', 'uaip-security-firewall' ) . '</h2>';
-		echo '<table class="uaip-sfw-compare"><thead><tr><th>' . esc_html__( 'Feature', 'uaip-security-firewall' ) . '</th><th>Free</th><th class="uaip-sfw-col-pro">Pro</th></tr></thead><tbody>';
-
-		$last_group = '';
-		foreach ( $features as $f ) {
-			if ( $f['group'] !== $last_group ) {
-				printf( '<tr class="uaip-sfw-group-row"><td colspan="3">%s</td></tr>', esc_html( $f['group'] ) );
-				$last_group = $f['group'];
-			}
-			$free_yes = ( 'pro' !== $f['availability'] );
-			$free_cell = $free_yes
-				? '<span class="uaip-sfw-yes dashicons dashicons-yes"></span>' . ( $f['free_note'] ? '<small>' . esc_html( $f['free_note'] ) . '</small>' : '' )
-				: '<span class="uaip-sfw-no">—</span>';
-			$pro_note = ( 'free' === $f['availability'] ) ? __( 'Included', 'uaip-security-firewall' ) : ( $f['pro_note'] ? $f['pro_note'] : $f['free_note'] );
-			$pro_cell = '<span class="uaip-sfw-yes dashicons dashicons-yes"></span>' . ( $pro_note ? '<small>' . esc_html( $pro_note ) . '</small>' : '' );
-			printf(
-				'<tr><td>%s</td><td>%s</td><td class="uaip-sfw-col-pro">%s</td></tr>',
-				esc_html( $f['label'] ),
-				$free_cell, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- cell markup escaped above.
-				$pro_cell // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- cell markup escaped above.
-			);
-		}
-		echo '</tbody></table></div>';
-		echo '</div>';
-	}
-
-	// -----------------------------------------------------------------
 	// License
 	// -----------------------------------------------------------------
 	/**
@@ -1436,8 +1224,8 @@ class Uaip_Sfw_Admin {
 		if ( ! $this->plugin->license->is_pro() ) {
 			echo '<div class="uaip-sfw-card uaip-sfw-conn uaip-sfw-conn-off">';
 			echo '<div class="uaip-sfw-conn-head"><span class="uaip-sfw-conn-dot off"></span><div>';
-			echo '<strong>' . esc_html__( 'UAIP Security Cloud is a Pro feature', 'uaip-security-firewall' ) . '</strong>';
-			echo '<p>' . esc_html__( 'The Free plugin runs fully standalone and never sends data to the cloud. Pro adds your account dashboard, centralized activity log, cloud monitoring, file-hash threat intelligence and faster rule updates. Activate a Pro license below to enable them.', 'uaip-security-firewall' ) . '</p>';
+			echo '<strong>' . esc_html__( 'No active licence', 'uaip-security-firewall' ) . '</strong>';
+			echo '<p>' . esc_html__( 'The cloud connection needs an active licence. Enter your licence key below.', 'uaip-security-firewall' ) . '</p>';
 			echo '</div></div></div>';
 			return;
 		}
@@ -1571,14 +1359,13 @@ JS;
 
 	public function page_license() {
 		$state   = $this->plugin->license->state();
-		$has_pkg = UAIP_SFW_HAS_PRO_PACKAGE;
 		$is_pro  = $this->plugin->license->is_pro();
 		$expired = $this->plugin->license->is_expired();
 		$has_key = '' !== $this->plugin->license->key();
 		$active  = $is_pro; // "active" means effectively Pro (not expired)
 
 		echo '<div class="wrap uaip-sfw-wrap">';
-		$this->header( __( 'License', 'uaip-security-firewall' ), __( 'Activate UAIP Security Pro on this site', 'uaip-security-firewall' ), 'dashicons-admin-network' );
+		$this->header( __( 'Cloud & Licence', 'uaip-security-firewall' ), __( 'Licence key and UAIP Security Cloud connection', 'uaip-security-firewall' ), 'dashicons-admin-network' );
 
 		// Cloud connection status (most relevant — shown first).
 		$this->render_cloud_connection();
@@ -1641,24 +1428,12 @@ JS;
 			printf( '<a class="button" href="%s" target="_blank">%s</a>', esc_url( $this->cloud_renew_url() ), esc_html__( 'Manage subscription', 'uaip-security-firewall' ) );
 		} elseif ( $expired || $has_key ) {
 			printf( '<a class="button button-primary" href="%s" target="_blank">%s</a>', esc_url( $this->cloud_renew_url() ), esc_html__( 'Renew subscription', 'uaip-security-firewall' ) );
-		} else {
-			printf( '<a class="button button-primary" href="%s" target="_blank">%s</a>', esc_url( $this->cloud_pricing_url() ), esc_html__( 'Buy Pro', 'uaip-security-firewall' ) );
 		}
 		echo '</p>';
 		echo '</div>';
 
 		echo '</div>'; // license-grid
 
-		if ( ! $has_pkg ) {
-			echo '<div class="uaip-sfw-card uaip-sfw-license-help"><h2>' . esc_html__( 'Don\'t have the Pro package yet?', 'uaip-security-firewall' ) . '</h2>';
-			echo '<p>' . esc_html__( 'Pro is a separate download. After purchasing, download the UAIP Security Pro package from your account and install it (it replaces this Free build), then enter your license key above to activate.', 'uaip-security-firewall' ) . '</p>';
-			printf(
-				'<a class="button button-primary" href="%s" target="_blank">%s</a>',
-				esc_url( UAIP_SFW_CLOUD_SITE . '/account' ),
-				esc_html__( 'Go to my account', 'uaip-security-firewall' )
-			);
-			echo '</div>';
-		}
 		echo '</div>';
 	}
 

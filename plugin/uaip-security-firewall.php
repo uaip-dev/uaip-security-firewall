@@ -90,10 +90,6 @@ register_activation_hook(
 		require_once UAIP_SFW_DIR . 'includes/class-uaip-sfw-settings.php';
 		Uaip_Sfw_Settings::install_defaults();
 		Uaip_Sfw_DB::install();
-		// Schedule the cloud heartbeat (every 15 min).
-		if ( ! wp_next_scheduled( 'uaip_sfw_heartbeat' ) ) {
-			wp_schedule_event( time() + 60, 'uaip_sfw_quarter_hour', 'uaip_sfw_heartbeat' );
-		}
 		set_transient( 'uaip_sfw_activation_redirect', 1, 30 );
 	}
 );

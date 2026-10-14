@@ -49,7 +49,6 @@ final class Uaip_Sfw_Plugin {
 		$this->register( 'waf', new Uaip_Sfw_WAF() );
 		$this->register( 'scanner', new Uaip_Sfw_Scanner() );
 		$this->register( 'login_guard', new Uaip_Sfw_Login_Guard() );
-		$this->register( 'login_brand', new Uaip_Sfw_Login_Brand() );
 		$twofa = new Uaip_Sfw_Twofa();
 		$this->register( 'twofa', $twofa );
 		$this->register( 'hardening', new Uaip_Sfw_Hardening() );

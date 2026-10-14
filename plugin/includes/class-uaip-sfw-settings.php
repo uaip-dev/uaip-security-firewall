@@ -48,18 +48,12 @@ class Uaip_Sfw_Settings {
 			'clamav_socket'          => '', // empty = auto-detect; or unix:///path or tcp://host:port (Pro)
 			'login_protection'       => true,
 			'login_captcha_after'    => 3,
-			'login_brand_enabled'    => false,
-			'login_logo_url'         => '',
-			'login_bg_from'          => '#1a0b06',
-			'login_bg_to'            => '#ea580c',
-			'login_button_color'     => '#ea580c',
 			'audit_log_enabled'      => true,
 			'audit_retention_days'   => 90,
 			'twofa_required_roles'   => array(),
 			'twofa_email'            => true,
 			'twofa_passkeys'         => true,
 			'cloud_connected'        => false,
-			'cloud_sample_upload'    => 'hashes_only', // 'off' | 'hashes_only' | 'full' (full = opt-in)
 			'anomaly_alerts'         => true,
 			'alert_email'            => '',
 			'delete_data_on_uninstall' => false, // wipe all settings/data when the plugin is deleted
