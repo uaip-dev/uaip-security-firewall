@@ -29,7 +29,52 @@ class Uaip_Sfw_Twofa_Page {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'show_user_profile', array( $this, 'profile_link' ) );
+		add_action( 'edit_user_profile', array( $this, 'admin_reset_field' ) );
+		add_action( 'edit_user_profile_update', array( $this, 'admin_reset_save' ) );
 		add_action( 'admin_notices', array( $this, 'required_notice' ) );
+	}
+
+	/**
+	 * On another user's profile: their two-step status and a reset option.
+	 *
+	 * @param WP_User $user User being edited.
+	 */
+	public function admin_reset_field( $user ) {
+		if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'edit_user', $user->ID ) ) {
+			return;
+		}
+		$m    = $this->twofa->methods( $user );
+		$list = array();
+		if ( ! empty( $m['passkey'] ) ) {
+			/* translators: %d: number of passkeys */
+			$list[] = sprintf( _n( '%d passkey', '%d passkeys', count( $this->twofa->passkeys( $user->ID ) ), 'uaip-security-firewall' ), count( $this->twofa->passkeys( $user->ID ) ) );
+		}
+		if ( ! empty( $m['totp'] ) ) {
+			$list[] = __( 'authenticator app', 'uaip-security-firewall' );
+		}
+		if ( ! empty( $m['email'] ) ) {
+			$list[] = __( 'email codes', 'uaip-security-firewall' );
+		}
+		echo '<h2>' . esc_html__( 'Two-step verification', 'uaip-security-firewall' ) . '</h2><table class="form-table" role="presentation"><tr><th>' . esc_html__( 'Status', 'uaip-security-firewall' ) . '</th><td>';
+		echo esc_html( $list ? implode( ', ', $list ) : __( 'Not set up', 'uaip-security-firewall' ) );
+		if ( $list ) {
+			echo '<p><label><input type="checkbox" name="uaip_sfw_reset_2fa" value="1"> ' . esc_html__( 'Remove all two-step methods and recovery codes (for a user who lost their device)', 'uaip-security-firewall' ) . '</label></p>';
+			echo '<p class="description">' . esc_html__( 'They can then sign in with their password and set up a new method. If their role requires two-step verification, they get email codes until they do.', 'uaip-security-firewall' ) . '</p>';
+		}
+		echo '</td></tr></table>';
+	}
+
+	/**
+	 * Core verifies the profile form's nonce before this runs.
+	 *
+	 * @param int $user_id User being saved.
+	 */
+	public function admin_reset_save( $user_id ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- core checked the update-user nonce before edit_user_profile_update.
+		if ( empty( $_POST['uaip_sfw_reset_2fa'] ) || ! current_user_can( 'manage_options' ) || ! current_user_can( 'edit_user', $user_id ) || get_current_user_id() === (int) $user_id ) {
+			return;
+		}
+		$this->twofa->reset_user( (int) $user_id );
 	}
 
 	public function menu() {

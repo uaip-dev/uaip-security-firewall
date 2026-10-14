@@ -204,7 +204,7 @@ class Uaip_Sfw_Activity_Page {
 	 */
 	private function when( $ts ) {
 		if ( time() - $ts < DAY_IN_SECONDS ) {
-			/* translators: %s: time difference */
+			/* translators: %s: human-readable time difference, e.g. "2 minutes" */
 			return sprintf( __( '%s ago', 'uaip-security-firewall' ), human_time_diff( $ts ) );
 		}
 		return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts );

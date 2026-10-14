@@ -3,7 +3,7 @@
  * Plugin Name:       UAIP Security Firewall
  * Plugin URI:        https://github.com/uaip-dev/uaip-security-firewall
  * Description:       Web application firewall, malware scanner, login protection and two-factor authentication for WordPress. Works on its own; the optional UAIP Security Cloud adds vulnerability alerts and fleet monitoring.
- * Version:           0.2.0
+ * Version:           1.0.0
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            UAIP
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ---------------------------------------------------------------------------
 // Plugin constants
 // ---------------------------------------------------------------------------
-define( 'UAIP_SFW_VERSION', '0.2.0' );
+define( 'UAIP_SFW_VERSION', '1.0.0' );
 define( 'UAIP_SFW_FILE', __FILE__ );
 define( 'UAIP_SFW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UAIP_SFW_URL', plugin_dir_url( __FILE__ ) );

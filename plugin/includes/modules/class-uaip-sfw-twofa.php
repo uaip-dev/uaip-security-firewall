@@ -568,6 +568,19 @@ class Uaip_Sfw_Twofa {
 	}
 
 	/**
+	 * Remove every method and recovery code (an administrator helping a
+	 * locked-out user). Required roles fall back to email codes.
+	 *
+	 * @param int $user_id User.
+	 */
+	public function reset_user( $user_id ) {
+		foreach ( array( self::META_SECRET, self::META_ENABLED, self::META_PENDING, self::META_LAST_STEP, self::META_EMAIL, self::META_PASSKEYS, self::META_RECOVERY, self::META_LOGIN, self::META_REG ) as $key ) {
+			delete_user_meta( $user_id, $key );
+		}
+		$this->audit( 'twofa_disabled', $user_id, 'all (reset by an administrator)' );
+	}
+
+	/**
 	 * Remove the authenticator app.
 	 *
 	 * @param int $user_id User.

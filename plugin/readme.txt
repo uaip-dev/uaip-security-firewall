@@ -1,255 +1,136 @@
 === UAIP Security Firewall ===
 Contributors: uaip
-Tags: security, firewall, malware scanner, login security, 2fa
+Tags: security, firewall, malware scanner, two-factor, passkeys
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Endpoint firewall, YARA malware scanner, login protection, 2FA, hardening and audit log - fully standalone. Optional cloud monitoring.
+Firewall, malware scanner with one-click repair, passkeys and two-step sign-in, activity log and hardening. Runs on your site; no account needed.
 
 == Description ==
 
-UAIP Security combines a local Web Application Firewall, a YARA-based malware
-scanner (with a pure-PHP fallback for shared hosting), brute-force login
-protection, 2FA, site hardening and an activity audit log — all working
-**standalone** in the Free tier, with no cloud dependency required.
+UAIP Security Firewall protects a WordPress site from the attacks that actually happen: bots guessing passwords, requests probing for SQL injection and file uploads, and malware hidden in plugin files. Everything runs on your own server. There is no account to create and nothing is locked.
 
-= Free (fully standalone — no account or cloud required) =
-* Endpoint WAF — blocks SQLi, RCE, XSS, LFI, traversal (bundled ruleset)
-* Rate limiting & bot throttling
-* YARA malware/webshell scanning (binary or PHP-lite fallback)
-* Core/plugin/theme integrity vs WordPress.org
-* Brute-force lockouts + CAPTCHA
-* Two-factor authentication (TOTP)
-* Breached-password blocking (local list)
-* Site hardening (.htaccess, disable editor, block PHP in uploads)
-* Custom login page — logo & colours (brand your wp-login.php)
-* Activity audit log (local, 30-day)
-* Traffic-anomaly email alerts (local)
+= Firewall =
 
-= Pro (subscription) =
-Pro is a **separate package** downloaded from your UAIP Security account and
-activated with a license key. It adds:
+* Checks every request (including admin-ajax, admin-post and REST API calls from visitors) against rules for SQL injection, cross-site scripting, remote code execution, file inclusion and path traversal.
+* Scores each request and blocks it once the score passes a threshold you choose, so one odd-looking word does not block a real visitor.
+* Learning mode: log what would be blocked before switching blocking on.
+* Exceptions per rule and per path, allow and block lists for IP addresses and ranges.
+* Rate limiting for bots that hammer the site.
+* Finds the real visitor IP behind Cloudflare or a trusted proxy, so one CDN address never stands in for everyone.
 
-* UAIP Security Cloud connectivity — account dashboard, site monitoring & threat intelligence (the Free tier is fully standalone and never contacts the cloud)
-* Extended protection mode (auto_prepend, runs the firewall before WordPress)
-* ClamAV antivirus (local clamd)
-* Cloud threat intelligence — flag known malware by file hash (only hashes leave your site)
-* Real-time traffic anomaly detection with email alerts + cloud activity log
-* One-click automatic & unlimited malware cleanup
-* Full malware-sample sandboxing
-* Country / geo blocking
-* WAF rules every 5 minutes + virtual patching
-* Real-time CVE alerts & auto virtual patch
-* Premium firewall rule feed (Threat Defense Feed)
-* Centralized cloud activity log (unlimited retention)
-* Multi-site dashboard, reports & white-label
-* Self-service billing & invoices (Stripe customer portal)
-* Uptime & performance monitoring
+= Malware scanner =
+
+* Compares WordPress core files and plugins from WordPress.org with their official checksums, and finds files that should not be there.
+* Scans themes, uploads, drop-ins and the site root for web shells and backdoors with YARA-style rules (pure PHP, works on shared hosting).
+* Repairs modified core and plugin files with one click, using the original file from WordPress.org after checking its checksum. Delete or ignore any finding.
+* Runs in small resumable steps in the background, so large sites do not time out.
+
+= Sign-in protection =
+
+* Passkeys (fingerprint, face, device PIN or security key), authenticator apps and email codes as a second step after the password, plus one-time recovery codes.
+* Require two-step verification for chosen roles, for example administrators and editors.
+* Limits password guessing with a check question and then a lockout per IP address.
+* Refuses very common passwords for privileged accounts (checked against a list bundled with the plugin).
+* Blocks XML-RPC and application passwords for accounts that use two-step verification, because those cannot show a second step.
+
+= Hardening =
+
+* Stops scripts running in the uploads folder (.php, .phtml, .phar and similar, including names like shell.php.jpg) and tests that the rule works.
+* Turns off the plugin and theme file editor.
+* Sends security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy) and optional HSTS.
+* Hides usernames from visitors: author scans, the public REST users list, the users sitemap, oEmbed author data, and different errors for a wrong username or password.
+* Ten security checks in Tools → Site Health, with a score and a fix link for each.
+
+= Activity log =
+
+* Sign-ins, failed sign-ins, user and role changes, password and email changes, application passwords, plugin and theme installs, updates and deletions, WordPress updates, setting changes, firewall blocks and scan results.
+* Filter by category, event, user, IP address, date and text; export to CSV; choose how long to keep entries.
+
+= Alerts =
+
+* Email when an administrator signs in, when a scan finds malware, and when the firewall sees a burst of attacks.
+* Optional weekly summary email.
+* Optional vulnerability alerts: a daily check of your WordPress, plugin and theme versions against known vulnerabilities. This is the only feature that uses an outside service run by us, and it is off until you turn it on (see External Services).
 
 == External Services ==
 
-The Free tier runs **fully standalone** and does not send any data to
-UAIP Security Cloud. The only external request it makes is to WordPress.org's
-checksum API (https://api.wordpress.org) to verify core/plugin/theme integrity.
+This plugin connects to the following services. Nothing is sent to UAIP Security Cloud unless an administrator turns on vulnerability alerts.
 
-UAIP Security Cloud connectivity is a **Pro** feature. If you purchase Pro and
-enter a license key, the plugin contacts UAIP Security Cloud at
-https://security.uaip.dev over HTTPS to validate the key and, once activated, to
-provide licensing, monitoring and threat intelligence. Depending on the feature
-in use, it may then send:
+= WordPress.org =
 
-* Site registration & licence checks: your site URL, admin email, and WordPress/PHP/plugin versions.
-* Heartbeats (monitoring & rule updates): counts of blocked requests and failed logins, your plugin inventory and versions, and the last scan summary.
-* File reputation: SHA-256 hashes of scanned files only - never file contents.
-* Activity log sync: the plugin's own security events, to your cloud account.
+Used by the malware scanner to verify files and repair them.
 
-No information about your site's visitors is ever collected.
+* When a scan runs, the plugin downloads the official checksums for your WordPress version (through WordPress's own `get_core_checksums()`, from api.wordpress.org) and for each installed plugin from WordPress.org (https://downloads.wordpress.org/plugin-checksums/). The request contains the WordPress version, or the plugin's folder name and version.
+* When an administrator clicks Repair on a finding, the plugin downloads that one original file from core.svn.wordpress.org or plugins.svn.wordpress.org. The request contains the WordPress version or plugin name and version, and the file's path.
 
-Use of UAIP Security Cloud is governed by its Terms of Service
-(https://security.uaip.dev/terms) and Privacy Policy (https://security.uaip.dev/privacy).
+WordPress.org privacy policy: https://wordpress.org/about/privacy/
+
+= UAIP Security Cloud (security.uaip.dev) =
+
+Used only for vulnerability alerts, which are off by default. An administrator turns them on under UAIP Security → Vulnerabilities, where the same information is shown before anything is sent.
+
+* When turned on, the site registers once. Sent: the site address, the WordPress version and this plugin's version. No email address.
+* Once a day, and shortly after plugins, themes or WordPress are installed, updated or deleted, the plugin sends the WordPress version and the folder name (slug) and version of each installed plugin and theme. Nothing else: no users, email addresses, content, visitor IP addresses or settings.
+* The service matches the list against public vulnerability data from WPVulnerability.net (CC0) and Wordfence Intelligence, and returns the matches with their source credits, which the plugin shows.
+* Turning alerts off stops all requests and deletes the stored results.
+
+Terms of service: https://security.uaip.dev/terms
+Privacy policy: https://security.uaip.dev/privacy
 
 == Installation ==
 
-1. Upload the `uaip-security-firewall` folder to `/wp-content/plugins/`.
-2. Activate through the 'Plugins' menu in WordPress. The Free tier is fully
-   standalone — no account or configuration required.
-3. For Pro: install the Pro package from your account and enter your license
-   key under UAIP Security → License (this enables UAIP Security Cloud).
+1. Install the plugin from Plugins → Add New, or upload the zip, and activate it.
+2. Open UAIP Security → Dashboard. The firewall, scanner, sign-in protection and activity log are on straight away.
+3. Open Users → Two-step verification and add a passkey or an authenticator app for your own account.
+4. Open UAIP Security → Hardening and go through the checks that are not yet passing.
+5. Behind Cloudflare or another proxy, set the visitor IP source under UAIP Security → Firewall.
 
 == Frequently Asked Questions ==
 
-= Does the Free plugin work without an account or the cloud? =
+= Do I need an account? =
 
-Yes — completely. Every Free feature runs entirely on your own server and the
-Free tier never contacts UAIP Security Cloud. Cloud connectivity is a Pro feature.
+No. Every feature works on your own site without an account. Vulnerability alerts use our free cloud service, only if you turn them on, and still need no account.
 
-= What data is sent to UAIP Security Cloud, and when? =
+= Will the firewall block real visitors? =
 
-On the Free tier, nothing — it is fully standalone. UAIP Security Cloud is a Pro
-feature: only after you enter a Pro license key does the plugin contact the
-cloud (see External Services for exactly what each feature sends). File contents
-are never uploaded — only SHA-256 hashes are used for reputation checks.
+Rules add up a score, and a request is blocked only when the total passes the threshold. Administrators and editors are not inspected by default. If something legitimate is blocked, add an exception for that rule and path on the Firewall page, or use learning mode first to see what would be blocked.
 
-= Do I need Pro to use it? =
+= My site is behind Cloudflare. Does that matter? =
 
-No. Pro is an optional paid upgrade. The Free plugin is fully functional on its own.
+Yes. Choose Cloudflare as the visitor IP source on the Firewall page. Otherwise every visitor appears to come from a Cloudflare address, and rate limits and lockouts would apply to all of them at once.
+
+= Does the scanner change my files on its own? =
+
+No. It only reports. Files are repaired or deleted when you click the button, and a repair uses the original from WordPress.org only after its checksum matches.
+
+= I lost my phone. How do I sign in? =
+
+Use one of the recovery codes you saved when you set up two-step verification, or a passkey or email code if you added one. An administrator can also remove your methods from your user profile.
+
+= Does it work with page caching? =
+
+Yes. The firewall runs inside WordPress, so cached pages served directly by your web server or CDN are not inspected; requests that reach WordPress (forms, logins, the admin area, the REST API) are.
+
+= What happens to my data when I delete the plugin? =
+
+By default your settings and logs are kept, so reinstalling restores them. To remove everything on deletion, turn on "Delete all data when the plugin is removed" under UAIP Security → Settings.
 
 == Screenshots ==
 
-1. Security dashboard — protection status, attacks blocked and the latest scan at a glance.
-2. Endpoint firewall — WAF status, recent blocks and rate-limiting controls.
-3. Malware scan — YARA + integrity results with file-change tracking and one-click remediation.
-4. Two-factor authentication setup with QR code and recovery codes.
-5. License & cloud connection — connect your site to UAIP Security Cloud.
+1. Dashboard: security score, recent activity and next steps.
+2. Firewall: status, blocking mode, threshold, rate limit and visitor IP source.
+3. Malware scan with findings and one-click repair.
+4. Two-step sign-in with a passkey after the password.
+5. Vulnerability alerts with fix versions and source credits.
+6. Hardening checks and options.
+7. Activity log with filters and CSV export.
 
 == Changelog ==
 
-= 0.1.22 =
-* Renamed the plugin's internal PHP classes to a 4+ character prefix
-  (Uaip_Sfw_) to avoid naming collisions, per WordPress.org guidelines.
-* Removed file quarantine/restore; detected malware is now reported and can be
-  permanently deleted (the plugin no longer moves files into uploads/wp-content).
-* Stored firewall request data is now sanitized (sanitize_text_field) before it
-  is saved, in addition to being escaped on output.
-* Renamed the bundled YARA rule file to a .txt extension and the firewall block
-  page now uses inline style attributes instead of a <style> block.
-
-= 0.1.21 =
-* Removed the free-form Custom CSS field from the login page customiser; login
-  branding is now built entirely from the structured logo/colour settings.
-* Login styles and the scan-page auto-refresh are now enqueued via
-  wp_add_inline_style() / wp_add_inline_script() instead of inline tags.
-* Extended protection (the auto_prepend firewall loader) is now a Pro-only
-  feature and no longer ships in the WordPress.org build.
-* Malware scanner now resolves plugin/mu-plugin/uploads/theme roots via the
-  proper WordPress functions and stages working files under uploads.
-* Hardened request-data handling and phpcs annotations in the firewall engine.
-* The firewall block / rate-limit pages no longer call translation functions
-  before the init hook, resolving a WordPress 6.7 "textdomain loaded too early"
-  notice.
-
-= 0.1.20 =
-* Packaging: removed the duplicate Author URI plugin header (it matched the
-  Plugin URI) for WordPress.org compliance. No functional changes.
-
-= 0.1.19 =
-* Fixed a WordPress 6.7 "translation loading triggered too early" notice (and
-  the resulting "headers already sent" warnings) on activation and admin pages.
-  Translations now load on the init hook.
-
-= 0.1.18 =
-* Plans page: corrected the Free vs Pro comparison to match the standalone Free
-  tier (cloud threat intelligence, CVE alerts, cloud account and sample upload
-  are shown as Pro; the audit log and WAF notes no longer imply cloud on Free).
-
-= 0.1.17 =
-* UAIP Security Cloud is now a Pro-only feature; the Free tier is fully standalone
-  and never contacts the cloud. Cloud monitoring, the account dashboard,
-  file-hash threat intelligence and cloud rule updates now require an active Pro
-  license. Entering a Pro license key connects and activates in one step.
-
-= 0.1.16 =
-* Fixed: the "Rate limiting & bot throttling" toggle on the Settings page now
-  actually enables/disables rate limiting (previously it had no effect; the
-  per-IP threshold on the Firewall page still controls the limit).
-
-= 0.1.15 =
-* Fixed: the Settings page and dashboard now show your real two-factor status.
-  Disabling 2FA on the Two-Factor page is reflected everywhere (previously a
-  separate, unused setting could still read "enabled"). 2FA is managed per user
-  account from the Two-Factor page.
-
-= 0.1.14 =
-* Security hardening: 2FA is now enforced for Application Passwords (they can no
-  longer bypass the second factor); quarantined files use unguessable IDs and
-  restore is re-validated to stay inside wp-content; custom login CSS sanitizer
-  hardened; WAF rejects malformed/oversized rule patterns.
-
-= 0.1.13 =
-* Code quality: resolved all WordPress.org Plugin Check issues in the Free
-  package (internationalization comments, output escaping and direct-file-access
-  guards). No functional changes.
-
-= 0.1.12 =
-* Docs: WordPress.org readme compliance — added an External Services
-  disclosure and FAQ, and shortened the summary.
-
-= 0.1.11 =
-* "Scan now" runs in the background (no timeout on big sites). The first scan
-  shows a "building baseline" notice and the page auto-refreshes when done.
-
-= 0.1.10 =
-* File-integrity baseline: scans now only re-check NEW or CHANGED files against
-  cloud threat intel (unchanged files are skipped), and track added/changed/
-  removed code files on the Scan page.
-
-= 0.1.9 =
-* Performance: cloud hash reputation now reuses the scanner's existing file
-  read (no extra disk I/O) and looks up in batches.
-
-= 0.1.8 =
-* Cloud threat intelligence: the scanner now checks file SHA-256 hashes against
-  UAIP Security Cloud and flags known malware (only hashes leave your site).
-* Corrected feature wording (removed unbuilt "cloud deep-scan" claims).
-
-= 0.1.7 =
-* UI: the scanner status now reads "Malware scanner: Active" instead of the
-  internal engine codename (e.g. php-lite).
-
-= 0.1.6 =
-* Added a "Clear log" button to the Audit Log page (synced events remain in
-  your cloud activity log).
-
-= 0.1.5 =
-* Fixed: a license key entered before connecting to the cloud now activates
-  immediately on connect (was stuck on Free until the next daily check).
-
-= 0.1.4 =
-* Added opt-in "Delete all data on uninstall" setting (off by default).
-* Deleting the plugin now fully removes all options, 2FA data, transients and
-  scheduled tasks when opted in; deactivation always preserves your settings.
-
-= 0.1.3 =
-* Pro pricing updated to $9/mo, with a 10% discount on annual (yearly) billing.
-
-= 0.1.0 =
-* Initial scaffold: tier system, WAF, scanner (YARA), login guard, 2FA,
-  hardening, audit log, cloud client, admin UI.
-
-== Upgrade Notice ==
-
-= 0.1.20 =
-Packaging/header compliance fix for WordPress.org. No functional changes.
-
-= 0.1.19 =
-Fixes a WordPress 6.7 textdomain notice and related warnings. Recommended.
-
-= 0.1.18 =
-Corrects the Free vs Pro feature comparison. Safe update.
-
-= 0.1.17 =
-UAIP Security Cloud is now Pro-only; the Free tier runs fully standalone. Existing
-free sites simply stop contacting the cloud.
-
-= 0.1.16 =
-The Settings-page rate-limiting toggle now works as expected. Safe update.
-
-= 0.1.15 =
-Fixes the two-factor status shown on the Settings page and dashboard. Safe
-update.
-
-= 0.1.14 =
-Security hardening for two-factor authentication and the malware quarantine.
-Recommended update.
-
-= 0.1.13 =
-Code-quality and WordPress.org compliance pass. No functional changes; safe
-update.
-
-= 0.1.12 =
-Adds a file-integrity baseline scanner (only re-checks changed files) and
-background scanning. Recommended update.
+= 1.0.0 =
+* First release on WordPress.org.
