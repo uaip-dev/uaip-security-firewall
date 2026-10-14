@@ -50,7 +50,8 @@ final class Uaip_Sfw_Plugin {
 		$this->register( 'scanner', new Uaip_Sfw_Scanner() );
 		$this->register( 'login_guard', new Uaip_Sfw_Login_Guard() );
 		$this->register( 'login_brand', new Uaip_Sfw_Login_Brand() );
-		$this->register( 'twofa', new Uaip_Sfw_Twofa() );
+		$twofa = new Uaip_Sfw_Twofa();
+		$this->register( 'twofa', $twofa );
 		$this->register( 'hardening', new Uaip_Sfw_Hardening() );
 		$this->register( 'audit_log', new Uaip_Sfw_Audit_Log() );
 		$this->register( 'heartbeat', new Uaip_Sfw_Heartbeat() );
@@ -76,6 +77,7 @@ final class Uaip_Sfw_Plugin {
 		// Admin UI.
 		if ( is_admin() ) {
 			( new Uaip_Sfw_Admin( $this ) )->register_hooks();
+			( new Uaip_Sfw_Twofa_Page( $twofa ) )->register_hooks();
 		}
 	}
 

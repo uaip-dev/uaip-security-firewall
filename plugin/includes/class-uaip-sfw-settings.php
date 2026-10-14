@@ -50,6 +50,9 @@ class Uaip_Sfw_Settings {
 			'login_bg_to'            => '#ea580c',
 			'login_button_color'     => '#ea580c',
 			'audit_log_enabled'      => true,
+			'twofa_required_roles'   => array(),
+			'twofa_email'            => true,
+			'twofa_passkeys'         => true,
 			'cloud_connected'        => false,
 			'cloud_sample_upload'    => 'hashes_only', // 'off' | 'hashes_only' | 'full' (full = opt-in)
 			'anomaly_alerts'         => true,

@@ -77,6 +77,31 @@ class Uaip_Sfw_TOTP {
 	}
 
 	/**
+	 * Verify a code and return the matched time step, so callers can refuse a
+	 * code that was already used (replay protection).
+	 *
+	 * @param string $secret Base32 secret.
+	 * @param string $input  User input.
+	 * @param int    $window Allowed steps each side.
+	 * @param int    $now    Timestamp (tests).
+	 * @return int|false Matched step counter, or false.
+	 */
+	public static function verify_step( $secret, $input, $window = 1, $now = null ) {
+		$input = preg_replace( '/\D/', '', (string) $input );
+		if ( strlen( $input ) !== self::DIGITS || '' === (string) $secret ) {
+			return false;
+		}
+		$now  = null === $now ? time() : (int) $now;
+		$base = intdiv( $now, self::PERIOD );
+		for ( $i = -$window; $i <= $window; $i++ ) {
+			if ( hash_equals( self::code( $secret, $now, $i ), $input ) ) {
+				return $base + $i;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Build the otpauth:// provisioning URI for QR/manual entry.
 	 *
 	 * @param string $secret Base32 secret.

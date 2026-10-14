@@ -1,0 +1,61 @@
+/* UAIP Security Firewall: two-step sign-in screen. */
+.uaip-sfw-2fa-intro {
+	margin-bottom: 16px;
+}
+
+.uaip-sfw-2fa-passkey .button-large {
+	width: 100%;
+	float: none;
+	text-align: center;
+}
+
+.login .uaip-sfw-2fa-passkey .button-large {
+	float: none;
+}
+
+.uaip-sfw-2fa-or {
+	position: relative;
+	margin: 16px 0;
+	text-align: center;
+	color: #646970;
+}
+
+.uaip-sfw-2fa-or::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 0;
+	right: 0;
+	border-top: 1px solid #dcdcde;
+}
+
+.uaip-sfw-2fa-or span {
+	position: relative;
+	padding: 0 8px;
+	background: #fff;
+}
+
+#uaip_sfw_code {
+	font-size: 20px;
+	letter-spacing: 0.15em;
+}
+
+.uaip-sfw-2fa .submit {
+	overflow: hidden;
+}
+
+.uaip-sfw-2fa-email,
+.uaip-sfw-2fa-help {
+	clear: both;
+	margin-top: 12px;
+}
+
+.uaip-sfw-2fa-help {
+	color: #646970;
+	font-size: 12px;
+}
+
+.uaip-sfw-2fa-error {
+	margin-top: 8px;
+	color: #b32d2e;
+}

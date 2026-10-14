@@ -127,7 +127,6 @@ class Uaip_Sfw_Admin {
 		add_submenu_page( 'uaip-sfw', __( 'Firewall', 'uaip-security-firewall' ), __( 'Firewall', 'uaip-security-firewall' ), $cap, 'uaip-sfw-firewall', array( $this, 'page_firewall' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Scan', 'uaip-security-firewall' ), __( 'Scan', 'uaip-security-firewall' ), $cap, 'uaip-sfw-scan', array( $this, 'page_scan' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Audit Log', 'uaip-security-firewall' ), __( 'Audit Log', 'uaip-security-firewall' ), $cap, 'uaip-sfw-audit', array( $this, 'page_audit' ) );
-		add_submenu_page( 'uaip-sfw', __( 'Two-Factor', 'uaip-security-firewall' ), __( 'Two-Factor', 'uaip-security-firewall' ), 'read', 'uaip-sfw-2fa', array( $this, 'page_2fa' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Hardening', 'uaip-security-firewall' ), __( 'Hardening', 'uaip-security-firewall' ), $cap, 'uaip-sfw-hardening', array( $this, 'page_hardening' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Login Page', 'uaip-security-firewall' ), __( 'Login Page', 'uaip-security-firewall' ), $cap, 'uaip-sfw-login', array( $this, 'page_login_brand' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Settings', 'uaip-security-firewall' ), __( 'Settings', 'uaip-security-firewall' ), $cap, 'uaip-sfw-settings', array( $this, 'page_settings' ) );
@@ -723,196 +722,6 @@ class Uaip_Sfw_Admin {
 	}
 
 	/**
-	 * Two-factor authentication enrollment for the current user.
-	 */
-	public function page_2fa() {
-		/** @var Uaip_Sfw_Twofa $twofa */
-		$twofa    = $this->plugin->module( 'twofa' );
-		$uid      = get_current_user_id();
-		$user     = wp_get_current_user();
-		$error    = '';
-		$success  = '';
-		$recovery = null;
-
-		if ( isset( $_POST['ps2fa_action'] ) && check_admin_referer( 'uaip_sfw_2fa' ) ) {
-			$action = sanitize_text_field( wp_unslash( $_POST['ps2fa_action'] ) );
-			if ( 'confirm' === $action ) {
-				$code = isset( $_POST['ps2fa_code'] ) ? sanitize_text_field( wp_unslash( $_POST['ps2fa_code'] ) ) : '';
-				$res  = $twofa->confirm_setup( $uid, $code );
-				if ( is_wp_error( $res ) ) {
-					$error = $res->get_error_message();
-				} else {
-					$recovery = $res;
-					$success  = __( 'Two-factor authentication is now enabled.', 'uaip-security-firewall' );
-				}
-			} elseif ( 'disable' === $action ) {
-				$twofa->disable( $uid );
-				$success = __( 'Two-factor authentication has been disabled.', 'uaip-security-firewall' );
-			} elseif ( 'regen' === $action ) {
-				$recovery = $twofa->regenerate_recovery( $uid );
-				$success  = __( 'New recovery codes generated. Your old codes no longer work.', 'uaip-security-firewall' );
-			}
-		}
-
-		$enabled = $twofa->is_enabled( $uid );
-
-		echo '<div class="wrap uaip-sfw-wrap">';
-		$this->header( __( 'Two-Factor Authentication', 'uaip-security-firewall' ), __( 'Protect your account with a one-time code', 'uaip-security-firewall' ), 'dashicons-smartphone' );
-
-		if ( $error ) {
-			echo '<div class="notice notice-error"><p>' . wp_kses_post( $error ) . '</p></div>';
-		}
-		if ( $success ) {
-			echo '<div class="notice notice-success"><p>' . esc_html( $success ) . '</p></div>';
-		}
-
-		// One-time recovery codes display.
-		if ( $recovery ) {
-			$this->render_recovery_codes( $recovery );
-		}
-
-		if ( $enabled ) {
-			$this->render_2fa_enabled( $twofa, $uid );
-		} else {
-			// Randomize the key/QR on each fresh page load (GET). Keep it stable
-			// across a verify POST so a wrong-code retry still matches the QR the
-			// user already scanned.
-			$is_post = ( 'POST' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ) ) );
-			$secret  = $is_post ? $twofa->pending_secret( $uid ) : $twofa->rotate_setup( $uid );
-			if ( '' === $secret ) {
-				$secret = $twofa->rotate_setup( $uid );
-			}
-			$this->render_2fa_setup( $twofa, $uid, $user, $secret );
-		}
-
-		echo '</div>';
-	}
-
-	/** Enabled-state card with disable / regenerate actions. */
-	private function render_2fa_enabled( $twofa, $uid ) {
-		echo '<div class="uaip-sfw-card ps-2fa-status ps-2fa-on">';
-		echo '<span class="dashicons dashicons-yes-alt"></span>';
-		echo '<div><div class="ps-2fa-state">' . esc_html__( '2FA is active on your account', 'uaip-security-firewall' ) . '</div>';
-		printf(
-			'<p>%s</p>',
-			esc_html( sprintf(
-				/* translators: %d: number of recovery codes left */
-				__( 'You have %d recovery codes remaining.', 'uaip-security-firewall' ),
-				$twofa->recovery_remaining( $uid )
-			) )
-		);
-		echo '</div></div>';
-
-		echo '<div class="ps-2fa-actions">';
-		echo '<form method="post">';
-		wp_nonce_field( 'uaip_sfw_2fa' );
-		echo '<input type="hidden" name="ps2fa_action" value="regen" />';
-		submit_button( __( 'Regenerate recovery codes', 'uaip-security-firewall' ), 'secondary', 'submit', false );
-		echo '</form>';
-		echo '<form method="post" onsubmit="return confirm(\'' . esc_js( __( 'Disable two-factor authentication?', 'uaip-security-firewall' ) ) . '\');">';
-		wp_nonce_field( 'uaip_sfw_2fa' );
-		echo '<input type="hidden" name="ps2fa_action" value="disable" />';
-		submit_button( __( 'Disable 2FA', 'uaip-security-firewall' ), 'delete', 'submit', false );
-		echo '</form>';
-		echo '</div>';
-	}
-
-	/** Setup wizard: secret + manual entry + verify. */
-	private function render_2fa_setup( $twofa, $uid, $user, $secret ) {
-		$issuer = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		$label  = $user->user_login;
-		$uri    = Uaip_Sfw_TOTP::provisioning_uri( $secret, $label, $issuer );
-
-		echo '<div class="uaip-sfw-card ps-2fa-setup">';
-		echo '<h2>' . esc_html__( 'Set up in three steps', 'uaip-security-firewall' ) . '</h2>';
-
-		echo '<ol class="uaip-sfw-steps">';
-
-		// Step 1.
-		echo '<li><div class="uaip-sfw-step-n">1</div><div class="uaip-sfw-step-body">';
-		echo '<strong>' . esc_html__( 'Install an authenticator app', 'uaip-security-firewall' ) . '</strong>';
-		echo '<p>' . esc_html__( 'Google Authenticator, Authy, 1Password or Microsoft Authenticator all work.', 'uaip-security-firewall' ) . '</p>';
-		echo '</div></li>';
-
-		// Step 2 — scan QR or enter key.
-		echo '<li><div class="uaip-sfw-step-n">2</div><div class="uaip-sfw-step-body">';
-		echo '<strong>' . esc_html__( 'Scan the QR code', 'uaip-security-firewall' ) . '</strong>';
-		echo '<p>' . esc_html__( 'Scan this with your authenticator app, or enter the key manually.', 'uaip-security-firewall' ) . '</p>';
-
-		echo '<div class="uaip-sfw-qr-layout">';
-
-		// QR code (rendered server-side, no third party).
-		$qr_svg = '';
-		try {
-			$qr_svg = Uaip_Sfw_QR::svg( $uri, 5, 4 );
-		} catch ( Exception $e ) {
-			$qr_svg = '';
-		}
-		if ( '' !== $qr_svg ) {
-			echo '<div class="uaip-sfw-qr">' . $qr_svg . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted self-generated SVG.
-		}
-
-		// Manual entry fallback.
-		echo '<div class="uaip-sfw-qr-manual">';
-		echo '<span class="uaip-sfw-qr-or">' . esc_html__( 'Can\'t scan? Enter this key:', 'uaip-security-firewall' ) . '</span>';
-		echo '<div class="uaip-sfw-secret-box"><code class="uaip-sfw-secret">' . esc_html( Uaip_Sfw_TOTP::format_secret( $secret ) ) . '</code>';
-		echo '<button type="button" class="button uaip-sfw-copy" data-clip="' . esc_attr( $secret ) . '">' . esc_html__( 'Copy', 'uaip-security-firewall' ) . '</button></div>';
-		printf(
-			'<p class="uaip-sfw-otp-link"><a href="%s">%s</a></p>',
-			esc_attr( $uri ),
-			esc_html__( 'Open in authenticator app (mobile)', 'uaip-security-firewall' )
-		);
-		printf(
-			'<p class="uaip-sfw-otp-link"><a href="%s">&#8635; %s</a></p>',
-			esc_url( admin_url( 'admin.php?page=uaip-sfw-2fa' ) ),
-			esc_html__( 'Generate a new key', 'uaip-security-firewall' )
-		);
-		echo '<details class="uaip-sfw-otp-details"><summary>' . esc_html__( 'Show setup details', 'uaip-security-firewall' ) . '</summary>';
-		printf(
-			'<p>%s <strong>%s</strong> · %s <strong>SHA1</strong> · %s <strong>6</strong> · %s <strong>30s</strong></p>',
-			esc_html__( 'Account:', 'uaip-security-firewall' ),
-			esc_html( $issuer . ':' . $label ),
-			esc_html__( 'Algorithm:', 'uaip-security-firewall' ),
-			esc_html__( 'Digits:', 'uaip-security-firewall' ),
-			esc_html__( 'Period:', 'uaip-security-firewall' )
-		);
-		echo '</details>';
-		echo '</div>'; // qr-manual
-
-		echo '</div>'; // qr-layout
-		echo '</div></li>';
-
-		// Step 3 — verify.
-		echo '<li><div class="uaip-sfw-step-n">3</div><div class="uaip-sfw-step-body">';
-		echo '<strong>' . esc_html__( 'Verify the code', 'uaip-security-firewall' ) . '</strong>';
-		echo '<p>' . esc_html__( 'Enter the 6-digit code your app shows right now:', 'uaip-security-firewall' ) . '</p>';
-		echo '<form method="post" class="uaip-sfw-verify-form">';
-		wp_nonce_field( 'uaip_sfw_2fa' );
-		echo '<input type="hidden" name="ps2fa_action" value="confirm" />';
-		echo '<input type="text" name="ps2fa_code" class="uaip-sfw-code-input" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required />';
-		submit_button( __( 'Verify & enable', 'uaip-security-firewall' ), 'primary', 'submit', false );
-		echo '</form>';
-		echo '</div></li>';
-
-		echo '</ol>';
-		echo '</div>';
-	}
-
-	/** One-time recovery codes panel. */
-	private function render_recovery_codes( $codes ) {
-		echo '<div class="uaip-sfw-card uaip-sfw-recovery">';
-		echo '<h2><span class="dashicons dashicons-privacy"></span> ' . esc_html__( 'Save your recovery codes', 'uaip-security-firewall' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Store these somewhere safe. Each code works once if you lose access to your authenticator app.', 'uaip-security-firewall' ) . '</p>';
-		echo '<div class="uaip-sfw-recovery-grid">';
-		foreach ( $codes as $c ) {
-			echo '<code>' . esc_html( $c ) . '</code>';
-		}
-		echo '</div>';
-		echo '<p class="uaip-sfw-empty">' . esc_html__( 'These codes will not be shown again.', 'uaip-security-firewall' ) . '</p>';
-		echo '</div>';
-	}
-
-	/**
 	 * ClamAV antivirus status / configuration card (Pro), with cPanel guidance.
 	 */
 	private function render_clamav_card() {
@@ -1159,7 +968,7 @@ class Uaip_Sfw_Admin {
 			'</p></div>';
 		printf(
 			'<a href="%s" class="button">%s</a></div>',
-			esc_url( admin_url( 'admin.php?page=uaip-sfw-2fa' ) ),
+			esc_url( Uaip_Sfw_Twofa_Page::url() ),
 			$twofa_on ? esc_html__( 'Manage', 'uaip-security-firewall' ) : esc_html__( 'Set up 2FA', 'uaip-security-firewall' )
 		);
 		echo '</div>';
@@ -1376,7 +1185,7 @@ class Uaip_Sfw_Admin {
 	 */
 	private function twofa_active() {
 		$twofa = $this->plugin->module( 'twofa' );
-		return $twofa ? (bool) $twofa->is_enabled( get_current_user_id() ) : false;
+		return $twofa ? in_array( true, $twofa->methods( wp_get_current_user() ), true ) : false;
 	}
 
 	/**
