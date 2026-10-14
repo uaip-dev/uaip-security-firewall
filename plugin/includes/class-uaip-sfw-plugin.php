@@ -78,6 +78,7 @@ final class Uaip_Sfw_Plugin {
 		if ( is_admin() ) {
 			( new Uaip_Sfw_Admin( $this ) )->register_hooks();
 			( new Uaip_Sfw_Twofa_Page( $twofa ) )->register_hooks();
+			( new Uaip_Sfw_Activity_Page( $this->module( 'audit_log' ) ) )->register_hooks();
 		}
 	}
 

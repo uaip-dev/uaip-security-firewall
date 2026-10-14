@@ -28,8 +28,8 @@ class Uaip_Sfw_Heartbeat {
 		$audit = Uaip_Sfw_Plugin::instance()->module( 'audit_log' );
 
 		// New audit-log entries since the last successful sync (batched).
-		$last_audit  = (int) get_option( 'uaip_sfw_audit_sync_ts', 0 );
-		$audit_batch = $audit && method_exists( $audit, 'since' ) ? $audit->since( $last_audit, 50 ) : array();
+		$last_audit  = (int) get_option( 'uaip_sfw_audit_sync_id', 0 );
+		$audit_batch = $audit ? $audit->since_id( $last_audit, 50 ) : array();
 
 		$payload = array(
 			'ts'           => time(),
@@ -55,13 +55,8 @@ class Uaip_Sfw_Heartbeat {
 
 		// Advance the audit-sync pointer only after a successful send.
 		if ( ! empty( $audit_batch ) ) {
-			$max_ts = 0;
-			foreach ( $audit_batch as $e ) {
-				$max_ts = max( $max_ts, (int) ( $e['ts'] ?? 0 ) );
-			}
-			if ( $max_ts > 0 ) {
-				update_option( 'uaip_sfw_audit_sync_ts', $max_ts );
-			}
+			$last = end( $audit_batch );
+			update_option( 'uaip_sfw_audit_sync_id', (int) $last['id'], false );
 		}
 
 		// The cloud may push back rule updates or anomaly verdicts.

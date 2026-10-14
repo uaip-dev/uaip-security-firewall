@@ -285,3 +285,15 @@
 .uaip-sfw-list { margin: 0 0 0 18px; list-style: disc; }
 .uaip-sfw-list li { margin: 4px 0; }
 @media (prefers-reduced-motion: reduce) { .uaip-sfw-progress-fill { transition: none; } }
+
+/* ---------------- Activity log ---------------- */
+.uaip-sfw-activity-filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.uaip-sfw-activity-filters label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #50575e; }
+.uaip-sfw-activity-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.uaip-sfw-activity-bar .dashicons { vertical-align: text-bottom; font-size: 16px; }
+.uaip-sfw-activity-count { font-weight: 600; }
+.uaip-sfw-activity-table a.uaip-sfw-ev-type { text-decoration: none; color: inherit; }
+.uaip-sfw-activity-details { color: #50575e; max-width: 360px; word-break: break-word; }
+.uaip-sfw-activity-table code { font-size: 12px; }
+.uaip-sfw-activity-manage h2 { margin-top: 0; }
+.uaip-sfw-inline-form { margin-bottom: 6px; }

@@ -163,11 +163,6 @@ class Uaip_Sfw_Login_Guard {
 		$fail = (int) get_transient( $this->key( $ip ) ) + 1;
 		set_transient( $this->key( $ip ), $fail, 15 * MINUTE_IN_SECONDS );
 		set_transient( 'uaip_sfw_failed_logins_15m', (int) get_transient( 'uaip_sfw_failed_logins_15m' ) + 1, 15 * MINUTE_IN_SECONDS );
-
-		$audit = Uaip_Sfw_Plugin::instance()->module( 'audit_log' );
-		if ( $audit ) {
-			$audit->record( 'login_failed', array( 'ip' => $ip, 'count' => $fail ) );
-		}
 	}
 
 	/** @param string $user_login */

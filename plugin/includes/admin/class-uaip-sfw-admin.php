@@ -126,7 +126,7 @@ class Uaip_Sfw_Admin {
 		add_submenu_page( 'uaip-sfw', __( 'Dashboard', 'uaip-security-firewall' ), __( 'Dashboard', 'uaip-security-firewall' ), $cap, 'uaip-sfw', array( $this, 'page_dashboard' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Firewall', 'uaip-security-firewall' ), __( 'Firewall', 'uaip-security-firewall' ), $cap, 'uaip-sfw-firewall', array( $this, 'page_firewall' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Scan', 'uaip-security-firewall' ), __( 'Scan', 'uaip-security-firewall' ), $cap, 'uaip-sfw-scan', array( $this, 'page_scan' ) );
-		add_submenu_page( 'uaip-sfw', __( 'Audit Log', 'uaip-security-firewall' ), __( 'Audit Log', 'uaip-security-firewall' ), $cap, 'uaip-sfw-audit', array( $this, 'page_audit' ) );
+		add_submenu_page( 'uaip-sfw', __( 'Activity Log', 'uaip-security-firewall' ), __( 'Activity Log', 'uaip-security-firewall' ), $cap, 'uaip-sfw-audit', array( $this, 'page_audit' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Hardening', 'uaip-security-firewall' ), __( 'Hardening', 'uaip-security-firewall' ), $cap, 'uaip-sfw-hardening', array( $this, 'page_hardening' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Login Page', 'uaip-security-firewall' ), __( 'Login Page', 'uaip-security-firewall' ), $cap, 'uaip-sfw-login', array( $this, 'page_login_brand' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Settings', 'uaip-security-firewall' ), __( 'Settings', 'uaip-security-firewall' ), $cap, 'uaip-sfw-settings', array( $this, 'page_settings' ) );
@@ -871,49 +871,13 @@ class Uaip_Sfw_Admin {
 	}
 
 	public function page_audit() {
-		$audit  = $this->plugin->module( 'audit_log' );
-
-		// Clear-log action (nonce-protected).
-		if ( isset( $_POST['uaip_sfw_clear_audit'] ) && check_admin_referer( 'uaip_sfw_clear_audit' ) ) {
-			$removed = ( $audit && method_exists( $audit, 'clear' ) ) ? (int) $audit->clear() : 0;
-			echo '<div class="notice notice-success is-dismissible"><p>';
-			printf(
-				/* translators: %d: number of events cleared */
-				esc_html__( 'Audit log cleared (%d events removed).', 'uaip-security-firewall' ),
-				(int) $removed
-			);
-			echo '</p></div>';
-		}
-
-		$events = $audit && method_exists( $audit, 'recent' ) ? $audit->recent( 100 ) : array();
 		echo '<div class="wrap uaip-sfw-wrap">';
-		$this->header( __( 'Audit Log', 'uaip-security-firewall' ), __( 'Security-relevant activity on your site', 'uaip-security-firewall' ), 'dashicons-list-view' );
-		echo '<div class="uaip-sfw-card">';
-
-		// Clear-log button (only when there is something to clear).
-		if ( ! empty( $events ) ) {
-			echo '<form method="post" style="float:right;margin:-4px 0 8px" onsubmit="return confirm(\'' . esc_js( __( 'Clear all local audit log entries? Synced events stay in your cloud activity log.', 'uaip-security-firewall' ) ) . '\');">';
-			wp_nonce_field( 'uaip_sfw_clear_audit' );
-			submit_button( __( 'Clear log', 'uaip-security-firewall' ), 'delete small', 'uaip_sfw_clear_audit', false );
-			echo '</form><div style="clear:both"></div>';
+		$this->header( __( 'Activity Log', 'uaip-security-firewall' ), __( 'Sign-ins, user and software changes, settings and security events', 'uaip-security-firewall' ), 'dashicons-list-view' );
+		$audit = $this->plugin->module( 'audit_log' );
+		if ( $audit ) {
+			( new Uaip_Sfw_Activity_Page( $audit ) )->render_body();
 		}
-
-		if ( empty( $events ) ) {
-			echo '<p class="uaip-sfw-empty">' . esc_html__( 'No events recorded yet.', 'uaip-security-firewall' ) . '</p>';
-		} else {
-			echo '<table class="widefat striped uaip-sfw-table"><thead><tr><th>' . esc_html__( 'When', 'uaip-security-firewall' ) . '</th><th>' . esc_html__( 'Event', 'uaip-security-firewall' ) . '</th><th>IP</th></tr></thead><tbody>';
-			foreach ( $events as $e ) {
-				printf(
-					'<tr><td>%s</td><td><span class="uaip-sfw-ev-type uaip-sfw-ev-%s">%s</span></td><td><code>%s</code></td></tr>',
-					esc_html( human_time_diff( (int) $e['ts'] ) . ' ' . __( 'ago', 'uaip-security-firewall' ) ),
-					esc_attr( $this->event_severity( $e['type'] ) ),
-					esc_html( $this->event_label( $e['type'] ) ),
-					esc_html( isset( $e['ip'] ) ? $e['ip'] : '' )
-				);
-			}
-			echo '</tbody></table>';
-		}
-		echo '</div></div>';
+		echo '</div>';
 	}
 
 	public function page_settings() {
@@ -975,7 +939,7 @@ class Uaip_Sfw_Admin {
 
 		// Group: Auditing.
 		$this->settings_group( __( 'Auditing', 'uaip-security-firewall' ), 'dashicons-list-view', array(
-			array( 'audit_log_enabled', __( 'Activity audit log', 'uaip-security-firewall' ), __( 'Record logins, plugin and theme changes.', 'uaip-security-firewall' ), $s['audit_log_enabled'] ),
+			array( 'audit_log_enabled', __( 'Activity log', 'uaip-security-firewall' ), __( 'Record sign-ins, user changes, plugin and theme changes, setting changes and firewall blocks.', 'uaip-security-firewall' ), $s['audit_log_enabled'] ),
 		) );
 
 		// Group: Monitoring & alerts.
@@ -1123,7 +1087,7 @@ class Uaip_Sfw_Admin {
 		printf(
 			'<a class="uaip-sfw-link" href="%s">%s &rarr;</a>',
 			esc_url( admin_url( 'admin.php?page=uaip-sfw-audit' ) ),
-			esc_html__( 'View full audit log', 'uaip-security-firewall' )
+			esc_html__( 'View the activity log', 'uaip-security-firewall' )
 		);
 		echo '</div>';
 
@@ -1200,7 +1164,7 @@ class Uaip_Sfw_Admin {
 			array( 'key' => 'login', 'icon' => 'dashicons-lock', 'label' => __( 'Login Protection', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'login_protection' ), 'pro' => false ),
 			array( 'key' => 'twofa', 'icon' => 'dashicons-smartphone', 'label' => __( 'Two-Factor Auth', 'uaip-security-firewall' ), 'on' => $this->twofa_active(), 'pro' => false ),
 			array( 'key' => 'hardening', 'icon' => 'dashicons-admin-tools', 'label' => __( 'Hardening', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'harden_disable_editor' ), 'pro' => false ),
-			array( 'key' => 'audit', 'icon' => 'dashicons-list-view', 'label' => __( 'Audit Log', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'audit_log_enabled' ), 'pro' => false ),
+			array( 'key' => 'audit', 'icon' => 'dashicons-list-view', 'label' => __( 'Activity Log', 'uaip-security-firewall' ), 'on' => (bool) Uaip_Sfw_Settings::get( 'audit_log_enabled' ), 'pro' => false ),
 			array( 'key' => 'clamav', 'icon' => 'dashicons-shield-alt', 'label' => __( 'ClamAV Antivirus', 'uaip-security-firewall' ), 'on' => $this->plugin->license->is_pro(), 'pro' => true ),
 			array( 'key' => 'geo', 'icon' => 'dashicons-admin-site', 'label' => __( 'Geo Blocking', 'uaip-security-firewall' ), 'on' => $this->plugin->license->is_pro(), 'pro' => true ),
 		);
@@ -1313,29 +1277,13 @@ class Uaip_Sfw_Admin {
 
 	/** @return string severity key for styling */
 	private function event_severity( $type ) {
-		$high = array( 'attack_blocked', 'malware_found' );
-		$mid  = array( 'login_failed', 'login_anomaly' );
-		if ( in_array( $type, $high, true ) ) {
-			return 'high';
-		}
-		if ( in_array( $type, $mid, true ) ) {
-			return 'mid';
-		}
-		return 'low';
+		list( , $severity ) = Uaip_Sfw_Audit_Log::type_info( $type );
+		return Uaip_Sfw_Activity_Page::dot( $severity );
 	}
 
 	/** @return string human label for an event type */
 	private function event_label( $type ) {
-		$labels = array(
-			'attack_blocked'     => __( 'Attack blocked', 'uaip-security-firewall' ),
-			'malware_found'      => __( 'Malware detected', 'uaip-security-firewall' ),
-			'login_failed'       => __( 'Failed login', 'uaip-security-firewall' ),
-			'login_success'      => __( 'Login', 'uaip-security-firewall' ),
-			'plugin_activated'   => __( 'Plugin activated', 'uaip-security-firewall' ),
-			'plugin_deactivated' => __( 'Plugin deactivated', 'uaip-security-firewall' ),
-			'theme_switched'     => __( 'Theme switched', 'uaip-security-firewall' ),
-		);
-		return isset( $labels[ $type ] ) ? $labels[ $type ] : ucwords( str_replace( '_', ' ', $type ) );
+		return Uaip_Sfw_Audit_Log::label( $type );
 	}
 
 	// -----------------------------------------------------------------

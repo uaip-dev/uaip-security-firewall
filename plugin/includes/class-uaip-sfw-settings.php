@@ -50,6 +50,7 @@ class Uaip_Sfw_Settings {
 			'login_bg_to'            => '#ea580c',
 			'login_button_color'     => '#ea580c',
 			'audit_log_enabled'      => true,
+			'audit_retention_days'   => 90,
 			'twofa_required_roles'   => array(),
 			'twofa_email'            => true,
 			'twofa_passkeys'         => true,

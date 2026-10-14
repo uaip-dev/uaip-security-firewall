@@ -46,16 +46,18 @@ function uaip_sfw_purge_blog() {
 	) );
 	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-	// Scanner tables (file baseline + findings).
+	// Scanner tables (file baseline + findings) and the activity log.
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- one-time uninstall cleanup of the plugin's own tables.
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'uaip_sfw_files' ) );
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'uaip_sfw_findings' ) );
+	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'uaip_sfw_activity' ) );
 	// phpcs:enable
 
 	// Scheduled events.
 	wp_clear_scheduled_hook( 'uaip_sfw_heartbeat' );
 	wp_clear_scheduled_hook( 'uaip_sfw_scan' );
 	wp_clear_scheduled_hook( 'uaip_sfw_scan_step' );
+	wp_clear_scheduled_hook( 'uaip_sfw_activity_prune' );
 }
 
 if ( is_multisite() ) {

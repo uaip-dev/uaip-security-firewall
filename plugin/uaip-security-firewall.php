@@ -107,6 +107,7 @@ register_deactivation_hook(
 		wp_clear_scheduled_hook( 'uaip_sfw_heartbeat' );
 		wp_clear_scheduled_hook( 'uaip_sfw_scan' );
 		wp_clear_scheduled_hook( 'uaip_sfw_scan_step' );
+		wp_clear_scheduled_hook( 'uaip_sfw_activity_prune' );
 	}
 );
 

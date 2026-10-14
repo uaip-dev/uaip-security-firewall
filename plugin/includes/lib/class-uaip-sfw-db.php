@@ -1,6 +1,6 @@
 <?php
 /**
- * Custom tables: the scanner's file baseline and its findings.
+ * Custom tables: the scanner's file baseline and findings, and the activity log.
  *
  * Tables are created on activation and upgraded on load when the schema
  * version changes. They are dropped on uninstall only when the site owner
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Uaip_Sfw_DB {
 
 	const VERSION_OPTION = 'uaip_sfw_db_version';
-	const VERSION        = '1';
+	const VERSION        = '2';
 
 	/** @return string File baseline table. */
 	public static function files() {
@@ -28,6 +28,12 @@ class Uaip_Sfw_DB {
 	public static function findings() {
 		global $wpdb;
 		return $wpdb->prefix . 'uaip_sfw_findings';
+	}
+
+	/** @return string Activity log table. */
+	public static function activity() {
+		global $wpdb;
+		return $wpdb->prefix . 'uaip_sfw_activity';
 	}
 
 	/**
@@ -48,6 +54,7 @@ class Uaip_Sfw_DB {
 		$charset = $wpdb->get_charset_collate();
 		$files   = self::files();
 		$finds   = self::findings();
+		$acts    = self::activity();
 
 		dbDelta(
 			"CREATE TABLE {$files} (
@@ -89,7 +96,28 @@ class Uaip_Sfw_DB {
 			KEY path_hash (path_hash)
 			) {$charset};"
 		);
+		dbDelta(
+			"CREATE TABLE {$acts} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			ts bigint(20) unsigned NOT NULL DEFAULT 0,
+			type varchar(40) NOT NULL DEFAULT '',
+			category varchar(20) NOT NULL DEFAULT '',
+			severity varchar(10) NOT NULL DEFAULT 'info',
+			actor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			actor varchar(60) NOT NULL DEFAULT '',
+			ip varchar(45) NOT NULL DEFAULT '',
+			object varchar(190) NOT NULL DEFAULT '',
+			data text NOT NULL,
+			PRIMARY KEY  (id),
+			KEY ts (ts),
+			KEY category_ts (category,ts),
+			KEY type (type),
+			KEY actor_id (actor_id),
+			KEY ip (ip)
+			) {$charset};"
+		);
 		update_option( self::VERSION_OPTION, self::VERSION );
+		Uaip_Sfw_Audit_Log::import_legacy();
 	}
 
 	/**
@@ -100,6 +128,7 @@ class Uaip_Sfw_DB {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- one-time uninstall cleanup of the plugin's own tables.
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::files() ) );
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::findings() ) );
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::activity() ) );
 		// phpcs:enable
 		delete_option( self::VERSION_OPTION );
 	}
