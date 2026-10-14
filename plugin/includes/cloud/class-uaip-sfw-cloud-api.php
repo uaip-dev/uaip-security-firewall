@@ -191,10 +191,13 @@ class Uaip_Sfw_Cloud_API {
 			if ( '' === $site_id || '' === $secret ) {
 				return new WP_Error( 'uaip_sfw_not_connected', __( 'Site is not connected to UAIP Security Cloud.', 'uaip-security-firewall' ) );
 			}
-			$ts                        = (string) time();
-			$signature                 = hash_hmac( 'sha256', $method . "\n" . $path . "\n" . $ts . "\n" . $sign_payload, $secret );
+			// A fresh nonce per request: the cloud accepts each one once.
+			$ts                          = (string) time();
+			$nonce                       = bin2hex( random_bytes( 16 ) );
+			$signature                   = hash_hmac( 'sha256', $method . "\n" . $path . "\n" . $ts . "\n" . $nonce . "\n" . $sign_payload, $secret );
 			$headers['X-UAIP-Site']      = $site_id;
 			$headers['X-UAIP-Timestamp'] = $ts;
+			$headers['X-UAIP-Nonce']     = $nonce;
 			$headers['X-UAIP-Signature'] = $signature;
 		}
 
