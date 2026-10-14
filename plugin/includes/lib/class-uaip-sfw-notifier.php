@@ -80,6 +80,29 @@ class Uaip_Sfw_Notifier {
 	}
 
 	/**
+	 * Alert about newly found vulnerabilities in installed software.
+	 *
+	 * @param string[] $lines One line per issue.
+	 */
+	public static function vulnerabilities( array $lines ) {
+		$count = count( $lines );
+		$body  = sprintf(
+			/* translators: %d: number of vulnerabilities */
+			_n( 'UAIP Security found %d known vulnerability in software installed on this site:', 'UAIP Security found %d known vulnerabilities in software installed on this site:', $count, 'uaip-security-firewall' ),
+			$count
+		) . "\n\n" . implode( "\n", array_slice( $lines, 0, 20 ) );
+		/* translators: %s: admin page URL */
+		$body .= "\n\n" . sprintf( __( 'Details and updates: %s', 'uaip-security-firewall' ), admin_url( 'admin.php?page=uaip-sfw-vulns' ) );
+		self::notify( 'vulns', __( 'Vulnerable software found', 'uaip-security-firewall' ), $body );
+	}
+
+	/** @return string Where security email goes (alert email, else the admin email). */
+	public static function recipient() {
+		$to = (string) Uaip_Sfw_Settings::get( 'alert_email' );
+		return is_email( $to ) ? $to : (string) get_option( 'admin_email' );
+	}
+
+	/**
 	 * Convenience: alert about an attack surge.
 	 *
 	 * @param int $count Blocks in the recent window.

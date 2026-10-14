@@ -50,6 +50,8 @@ class Uaip_Sfw_Settings {
 			'login_captcha_after'    => 3,
 			'audit_log_enabled'      => true,
 			'audit_retention_days'   => 90,
+			'vuln_alerts'            => false, // opt-in: sends software versions to the cloud
+			'digest_weekly'          => false,
 			'twofa_required_roles'   => array(),
 			'twofa_email'            => true,
 			'twofa_passkeys'         => true,

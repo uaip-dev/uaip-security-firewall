@@ -32,6 +32,7 @@ class Uaip_Sfw_Site_Health {
 			'uploads'       => array( $this, 'check_uploads' ),
 			'admins_2fa'    => array( $this, 'check_admins_2fa' ),
 			'scan'          => array( $this, 'check_scan' ),
+			'vulns'         => array( $this, 'check_vulns' ),
 			'login'         => array( $this, 'check_login' ),
 			'usernames'     => array( $this, 'check_usernames' ),
 			'headers'       => array( $this, 'check_headers' ),
@@ -220,6 +221,32 @@ class Uaip_Sfw_Site_Health {
 			return $this->result( 'recommended', __( 'No recent malware scan', 'uaip-security-firewall' ), __( 'The site has not been scanned in the last week. Scans normally run daily through WP-Cron.', 'uaip-security-firewall' ), $fix, __( 'Scan now', 'uaip-security-firewall' ) );
 		}
 		return $this->result( 'good', __( 'The latest malware scan is clean', 'uaip-security-firewall' ), __( 'No open findings from the last scan.', 'uaip-security-firewall' ) );
+	}
+
+	public function check_vulns() {
+		$fix = admin_url( 'admin.php?page=uaip-sfw-vulns' );
+		if ( ! Uaip_Sfw_Vulns::enabled() ) {
+			return $this->result( 'recommended', __( 'Vulnerability alerts are off', 'uaip-security-firewall' ), __( 'Most hacked WordPress sites run a plugin or theme with a known, already fixed vulnerability. Alerts tell you when one is installed here (opt-in: sends software versions to UAIP Security Cloud).', 'uaip-security-firewall' ), $fix, __( 'Read more and turn on', 'uaip-security-firewall' ) );
+		}
+		$res   = Uaip_Sfw_Vulns::results();
+		$count = 0;
+		foreach ( (array) ( $res['items'] ?? array() ) as $it ) {
+			$count += count( $it['vulns'] );
+		}
+		if ( $count ) {
+			return $this->result(
+				'critical',
+				/* translators: %d: number of vulnerabilities */
+				sprintf( _n( '%d known vulnerability in installed software', '%d known vulnerabilities in installed software', $count, 'uaip-security-firewall' ), $count ),
+				__( 'Update or remove the affected software. Attackers scan for these versions automatically.', 'uaip-security-firewall' ),
+				$fix,
+				__( 'See what to update', 'uaip-security-firewall' )
+			);
+		}
+		if ( empty( $res['checked_at'] ) || (int) $res['checked_at'] < time() - 3 * DAY_IN_SECONDS ) {
+			return $this->result( 'recommended', __( 'The vulnerability check has not run recently', 'uaip-security-firewall' ), __( 'The daily check runs through WP-Cron. Run it by hand to see whether the cloud can be reached.', 'uaip-security-firewall' ), $fix, __( 'Check now', 'uaip-security-firewall' ) );
+		}
+		return $this->result( 'good', __( 'No known vulnerabilities in installed software', 'uaip-security-firewall' ), __( 'WordPress, plugins and themes were checked against known vulnerabilities in the last day.', 'uaip-security-firewall' ) );
 	}
 
 	public function check_login() {

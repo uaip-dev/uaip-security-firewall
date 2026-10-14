@@ -102,6 +102,7 @@ class Uaip_Sfw_Audit_Log {
 		'theme_switched'           => array( 'software', 'notice' ),
 		'theme_deleted'            => array( 'software', 'notice' ),
 		'core_updated'             => array( 'software', 'info' ),
+		'vuln_found'               => array( 'software', 'warning' ),
 		'option_changed'           => array( 'settings', 'notice' ),
 		'plugin_settings_changed'  => array( 'settings', 'notice' ),
 		'attack_blocked'           => array( 'firewall', 'warning' ),
@@ -141,6 +142,7 @@ class Uaip_Sfw_Audit_Log {
 			'theme_switched'           => __( 'Theme switched', 'uaip-security-firewall' ),
 			'theme_deleted'            => __( 'Theme deleted', 'uaip-security-firewall' ),
 			'core_updated'             => __( 'WordPress updated', 'uaip-security-firewall' ),
+			'vuln_found'               => __( 'Vulnerable software found', 'uaip-security-firewall' ),
 			'option_changed'           => __( 'Site setting changed', 'uaip-security-firewall' ),
 			'plugin_settings_changed'  => __( 'Security settings changed', 'uaip-security-firewall' ),
 			'attack_blocked'           => __( 'Attack blocked', 'uaip-security-firewall' ),
@@ -542,6 +544,23 @@ class Uaip_Sfw_Audit_Log {
 			'rows'  => array_map( array( $this, 'shape' ), (array) $rows ),
 			'total' => $total,
 		);
+	}
+
+	/**
+	 * Event counts by type since a time.
+	 *
+	 * @param int $since Unix time.
+	 * @return array<string,int>
+	 */
+	public function counts_since( $since ) {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the plugin's own log table.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT type, COUNT(*) AS n FROM %i WHERE ts >= %d GROUP BY type', Uaip_Sfw_DB::activity(), (int) $since ), ARRAY_A );
+		$out  = array();
+		foreach ( (array) $rows as $r ) {
+			$out[ $r['type'] ] = (int) $r['n'];
+		}
+		return $out;
 	}
 
 	/**

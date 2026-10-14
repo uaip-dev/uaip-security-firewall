@@ -119,6 +119,16 @@ class Uaip_Sfw_Cloud_API {
 	}
 
 	/**
+	 * Match installed software against known vulnerabilities (opt-in).
+	 *
+	 * @param array $inventory {core, plugins: [{slug, version}], themes: [...]}.
+	 * @return array|WP_Error
+	 */
+	public function check_vulns( array $inventory ) {
+		return $this->request( 'POST', '/vulns/check', $inventory );
+	}
+
+	/**
 	 * Reputation lookup for suspicious files. Free sends HASHES ONLY.
 	 *
 	 * @param array $hashes

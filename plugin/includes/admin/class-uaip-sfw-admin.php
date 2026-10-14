@@ -108,6 +108,7 @@ class Uaip_Sfw_Admin {
 		add_submenu_page( 'uaip-sfw', __( 'Dashboard', 'uaip-security-firewall' ), __( 'Dashboard', 'uaip-security-firewall' ), $cap, 'uaip-sfw', array( $this, 'page_dashboard' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Firewall', 'uaip-security-firewall' ), __( 'Firewall', 'uaip-security-firewall' ), $cap, 'uaip-sfw-firewall', array( $this, 'page_firewall' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Scan', 'uaip-security-firewall' ), __( 'Scan', 'uaip-security-firewall' ), $cap, 'uaip-sfw-scan', array( $this, 'page_scan' ) );
+		add_submenu_page( 'uaip-sfw', __( 'Vulnerabilities', 'uaip-security-firewall' ), __( 'Vulnerabilities', 'uaip-security-firewall' ), $cap, 'uaip-sfw-vulns', array( $this, 'page_vulns' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Activity Log', 'uaip-security-firewall' ), __( 'Activity Log', 'uaip-security-firewall' ), $cap, 'uaip-sfw-audit', array( $this, 'page_audit' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Hardening', 'uaip-security-firewall' ), __( 'Hardening', 'uaip-security-firewall' ), $cap, 'uaip-sfw-hardening', array( $this, 'page_hardening' ) );
 		add_submenu_page( 'uaip-sfw', __( 'Settings', 'uaip-security-firewall' ), __( 'Settings', 'uaip-security-firewall' ), $cap, 'uaip-sfw-settings', array( $this, 'page_settings' ) );
@@ -119,7 +120,7 @@ class Uaip_Sfw_Admin {
 
 	/** @return bool Show the cloud and licence screen. */
 	public static function cloud_screen_available() {
-		return UAIP_SFW_HAS_PRO_PACKAGE || Uaip_Sfw_Cloud_API::instance()->is_connected();
+		return UAIP_SFW_HAS_PRO_PACKAGE || '' !== Uaip_Sfw_Plugin::instance()->license->key();
 	}
 
 	// -----------------------------------------------------------------
@@ -155,6 +156,8 @@ class Uaip_Sfw_Admin {
 			printf( '<span class="uaip-sfw-tier uaip-sfw-tier-%1$s">%2$s</span>', esc_attr( $tier ), esc_html( strtoupper( $tier ) ) );
 		}
 		echo '</div>';
+		// WordPress moves admin notices to just after this marker.
+		echo '<hr class="wp-header-end">';
 	}
 
 	/**
@@ -825,6 +828,16 @@ class Uaip_Sfw_Admin {
 		echo '</div></div>';
 	}
 
+	public function page_vulns() {
+		echo '<div class="wrap uaip-sfw-wrap">';
+		$this->header( __( 'Vulnerabilities', 'uaip-security-firewall' ), __( 'Known security holes in installed WordPress, plugins and themes', 'uaip-security-firewall' ), 'dashicons-warning' );
+		$vulns = $this->plugin->module( 'vulns' );
+		if ( $vulns ) {
+			( new Uaip_Sfw_Vulns_Page( $vulns ) )->render_body();
+		}
+		echo '</div>';
+	}
+
 	public function page_audit() {
 		echo '<div class="wrap uaip-sfw-wrap">';
 		$this->header( __( 'Activity Log', 'uaip-security-firewall' ), __( 'Sign-ins, user and software changes, settings and security events', 'uaip-security-firewall' ), 'dashicons-list-view' );
@@ -836,6 +849,16 @@ class Uaip_Sfw_Admin {
 	}
 
 	public function page_settings() {
+		if ( isset( $_POST['uaip_sfw_send_digest'] ) && check_admin_referer( 'uaip_sfw_settings' ) && current_user_can( 'manage_options' ) ) {
+			$digest = $this->plugin->module( 'digest' );
+			$sent   = $digest && $digest->send();
+			echo '<div class="notice notice-' . ( $sent ? 'success' : 'error' ) . ' is-dismissible"><p>' . esc_html(
+				$sent
+					/* translators: %s: email address */
+					? sprintf( __( 'Summary sent to %s.', 'uaip-security-firewall' ), Uaip_Sfw_Notifier::recipient() )
+					: __( 'The summary email could not be sent. Check that this site can send email.', 'uaip-security-firewall' )
+			) . '</p></div>';
+		}
 		if ( isset( $_POST['uaip_sfw_save_settings'] ) && check_admin_referer( 'uaip_sfw_settings' ) ) {
 			Uaip_Sfw_Settings::update( array(
 				'waf_enabled'       => ! empty( $_POST['waf_enabled'] ),
@@ -846,6 +869,7 @@ class Uaip_Sfw_Admin {
 				'audit_log_enabled' => ! empty( $_POST['audit_log_enabled'] ),
 				'anomaly_alerts'    => ! empty( $_POST['anomaly_alerts'] ),
 				'alert_email'       => isset( $_POST['alert_email'] ) ? sanitize_email( wp_unslash( $_POST['alert_email'] ) ) : '',
+				'digest_weekly'     => ! empty( $_POST['digest_weekly'] ),
 				'delete_data_on_uninstall' => ! empty( $_POST['delete_data_on_uninstall'] ),
 			) );
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'uaip-security-firewall' ) . '</p></div>';
@@ -903,6 +927,8 @@ class Uaip_Sfw_Admin {
 		$this->switch_field( 'anomaly_alerts', __( 'Security email alerts', 'uaip-security-firewall' ), __( 'Email when an administrator signs in, when a scan finds malware, and when the firewall sees a burst of attacks. Each alert is sent at most once an hour.', 'uaip-security-firewall' ), $s['anomaly_alerts'] );
 		echo '<div class="uaip-sfw-field"><div class="uaip-sfw-field-text"><strong>' . esc_html__( 'Alert email', 'uaip-security-firewall' ) . '</strong><p>' . esc_html__( 'Where to send security notifications.', 'uaip-security-firewall' ) . '</p></div>';
 		printf( '<input type="email" name="alert_email" class="regular-text" value="%s" placeholder="you@example.com" /></div>', esc_attr( $s['alert_email'] ) );
+		$this->switch_field( 'digest_weekly', __( 'Weekly summary email', 'uaip-security-firewall' ), __( 'Every Monday morning: attacks blocked, sign-in failures, user and plugin changes, the latest scan, known vulnerabilities and waiting updates.', 'uaip-security-firewall' ), ! empty( $s['digest_weekly'] ) );
+		echo '<p><button type="submit" name="uaip_sfw_send_digest" value="1" class="button">' . esc_html__( 'Send a summary now', 'uaip-security-firewall' ) . '</button></p>';
 		echo '</div>';
 
 		// Group: Data & uninstall (opt-in destructive cleanup).
@@ -978,7 +1004,7 @@ class Uaip_Sfw_Admin {
 				esc_html( strtoupper( $tier ) )
 			);
 		}
-		echo '</div>';
+		echo '</div><hr class="wp-header-end">';
 
 		// ---- Top: score + quick stats ----
 		echo '<div class="uaip-sfw-grid-top">';

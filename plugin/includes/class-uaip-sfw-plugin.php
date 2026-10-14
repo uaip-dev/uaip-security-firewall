@@ -53,6 +53,8 @@ final class Uaip_Sfw_Plugin {
 		$this->register( 'twofa', $twofa );
 		$this->register( 'hardening', new Uaip_Sfw_Hardening() );
 		$this->register( 'site_health', new Uaip_Sfw_Site_Health() );
+		$this->register( 'vulns', new Uaip_Sfw_Vulns() );
+		$this->register( 'digest', new Uaip_Sfw_Digest() );
 		$this->register( 'audit_log', new Uaip_Sfw_Audit_Log() );
 		$this->register( 'heartbeat', new Uaip_Sfw_Heartbeat() );
 

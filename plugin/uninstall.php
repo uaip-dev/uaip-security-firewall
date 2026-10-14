@@ -58,6 +58,9 @@ function uaip_sfw_purge_blog() {
 	wp_clear_scheduled_hook( 'uaip_sfw_scan' );
 	wp_clear_scheduled_hook( 'uaip_sfw_scan_step' );
 	wp_clear_scheduled_hook( 'uaip_sfw_activity_prune' );
+	wp_clear_scheduled_hook( 'uaip_sfw_vuln_check' );
+	wp_clear_scheduled_hook( 'uaip_sfw_vuln_check_once' );
+	wp_clear_scheduled_hook( 'uaip_sfw_digest' );
 }
 
 if ( is_multisite() ) {

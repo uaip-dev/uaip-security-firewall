@@ -269,3 +269,12 @@
 .uaip-sfw-check-recommended .dashicons { color: #b26200; }
 .uaip-sfw-check-critical .dashicons { color: #b32d2e; }
 .uaip-sfw-snippet { background: #f6f7f7; border: 1px solid #dcdcde; padding: 10px 12px; overflow-x: auto; }
+
+/* ---------------- Vulnerabilities ---------------- */
+.uaip-sfw-optin h2 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+.uaip-sfw-optin h2 .dashicons { color: #ea580c; }
+.uaip-sfw-optin h3 { margin: 16px 0 4px; font-size: 14px; }
+.uaip-sfw-list { list-style: disc; margin-left: 20px; }
+.uaip-sfw-vulns-clean { display: flex; align-items: center; gap: 6px; color: #1e7a34; font-weight: 600; }
+.uaip-sfw-credits { margin-top: 16px; padding-top: 10px; border-top: 1px solid #f0f0f1; color: #646970; font-size: 12px; }
+.uaip-sfw-credits p { margin: 4px 0; }
