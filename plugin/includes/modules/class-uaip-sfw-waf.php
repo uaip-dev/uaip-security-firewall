@@ -359,15 +359,32 @@ class Uaip_Sfw_WAF {
 			return;
 		}
 		$res = Uaip_Sfw_Cloud_API::instance()->pull_rules( array( 'waf' => get_option( 'uaip_sfw_waf_rules_version', 0 ) ) );
-		if ( ! is_wp_error( $res ) && ! empty( $res['waf']['rules'] ) ) {
-			update_option( 'uaip_sfw_waf_rules', $res['waf']['rules'] );
-			update_option( 'uaip_sfw_waf_rules_version', $res['waf']['version'] );
-			// Extended protection (the auto_prepend loader) is a Pro-only feature;
-			// the installer class is absent from the free build.
-			if ( class_exists( 'Uaip_Sfw_WAF_Installer' ) && Uaip_Sfw_WAF_Installer::is_installed() ) {
-				Uaip_Sfw_WAF_Installer::write_config();
-			}
+		if ( ! is_wp_error( $res ) && ! empty( $res['waf']['payload'] ) ) {
+			$this->apply_feed( $res['waf'] );
 		}
+	}
+
+	/**
+	 * Install a signed rule bundle after verifying it.
+	 *
+	 * @param array $bundle {version, payload, sig}.
+	 * @return true|WP_Error
+	 */
+	public function apply_feed( array $bundle ) {
+		$feed = Uaip_Sfw_Rules_Feed::verify( $bundle, (int) get_option( 'uaip_sfw_waf_rules_version', 0 ) );
+		if ( is_wp_error( $feed ) ) {
+			update_option( 'uaip_sfw_waf_feed_error', array( 'ts' => time(), 'code' => $feed->get_error_code() ), false );
+			return $feed;
+		}
+		update_option( 'uaip_sfw_waf_rules', $feed['rules'] );
+		update_option( 'uaip_sfw_waf_rules_version', $feed['version'] );
+		delete_option( 'uaip_sfw_waf_feed_error' );
+		// Extended protection (the auto_prepend loader) is a Pro-only feature;
+		// the installer class is absent from the free build.
+		if ( class_exists( 'Uaip_Sfw_WAF_Installer' ) && Uaip_Sfw_WAF_Installer::is_installed() ) {
+			Uaip_Sfw_WAF_Installer::write_config();
+		}
+		return true;
 	}
 
 	/**

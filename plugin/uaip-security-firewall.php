@@ -38,8 +38,16 @@ if ( ! defined( 'UAIP_SFW_CLOUD_URL' ) ) {
 }
 
 /**
- * Browser-reachable cloud site URL (for the pricing/upgrade link). Defaults to
- * the API URL with the /api/... suffix stripped.
+ * Ed25519 public key for the rule feed. Rules from the cloud are used only
+ * when their signature verifies against this key.
+ */
+if ( ! defined( 'UAIP_SFW_RULES_PUBKEY' ) ) {
+	define( 'UAIP_SFW_RULES_PUBKEY', '+tvDMbtp7LuQdnkvP8Rd1yG3FqPRYvKaZZ656TmPllw=' );
+}
+
+/**
+ * Browser-reachable cloud site URL (for account links). Defaults to the API
+ * URL with the /api/... suffix stripped.
  */
 if ( ! defined( 'UAIP_SFW_CLOUD_SITE' ) ) {
 	define( 'UAIP_SFW_CLOUD_SITE', preg_replace( '#/api/.*$#', '', UAIP_SFW_CLOUD_URL ) );
