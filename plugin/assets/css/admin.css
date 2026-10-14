@@ -297,3 +297,15 @@
 .uaip-sfw-activity-table code { font-size: 12px; }
 .uaip-sfw-activity-manage h2 { margin-top: 0; }
 .uaip-sfw-inline-form { margin-bottom: 6px; }
+
+/* ---------------- Hardening checks ---------------- */
+.uaip-sfw-checks h2 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
+.uaip-sfw-checks h2 .dashicons { color: #ea580c; }
+.uaip-sfw-check-list { margin: 12px 0 0; padding: 0; list-style: none; }
+.uaip-sfw-check { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f1; }
+.uaip-sfw-check:last-child { border-bottom: 0; }
+.uaip-sfw-check p { margin: 2px 0 4px; color: #50575e; }
+.uaip-sfw-check-good .dashicons { color: #1e7a34; }
+.uaip-sfw-check-recommended .dashicons { color: #b26200; }
+.uaip-sfw-check-critical .dashicons { color: #b32d2e; }
+.uaip-sfw-snippet { background: #f6f7f7; border: 1px solid #dcdcde; padding: 10px 12px; overflow-x: auto; }

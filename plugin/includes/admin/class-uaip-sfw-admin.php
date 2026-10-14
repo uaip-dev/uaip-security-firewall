@@ -779,33 +779,88 @@ class Uaip_Sfw_Admin {
 	 * Hardening page — apply one-click security toggles.
 	 */
 	public function page_hardening() {
+		/** @var Uaip_Sfw_Hardening $harden */
 		$harden = $this->plugin->module( 'hardening' );
+		$health = $this->plugin->module( 'site_health' );
+		$can    = current_user_can( 'manage_options' );
 
-		if ( isset( $_POST['uaip_sfw_harden_save'] ) && check_admin_referer( 'uaip_sfw_hardening' ) ) {
+		if ( $can && isset( $_POST['uaip_sfw_harden_save'] ) && check_admin_referer( 'uaip_sfw_hardening' ) ) {
+			$values = array();
 			foreach ( array_keys( $harden->actions() ) as $key ) {
 				$enabled = ! empty( $_POST[ $key ] );
-				$res     = $harden->apply( $key, $enabled );
-				if ( is_wp_error( $res ) ) {
-					echo '<div class="notice notice-error"><p>' . esc_html( $res->get_error_message() ) . '</p></div>';
-					$enabled = false; // do not record as on if it failed
+				if ( (bool) Uaip_Sfw_Settings::get( $key ) !== $enabled || 'harden_block_php_uploads' === $key ) {
+					$res = $harden->apply( $key, $enabled );
+					if ( is_wp_error( $res ) ) {
+						echo '<div class="notice notice-error"><p>' . esc_html( $res->get_error_message() ) . '</p></div>';
+						$enabled = false;
+					}
 				}
-				Uaip_Sfw_Settings::update( array( $key => $enabled ) );
+				$values[ $key ] = $enabled;
 			}
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Hardening settings applied.', 'uaip-security-firewall' ) . '</p></div>';
+			Uaip_Sfw_Settings::update( $values );
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Hardening saved. Some changes apply from the next page load.', 'uaip-security-firewall' ) . '</p></div>';
+		} elseif ( $can && isset( $_POST['uaip_sfw_probe_uploads'] ) && check_admin_referer( 'uaip_sfw_hardening' ) ) {
+			$harden->probe_uploads();
+		} else {
+			$harden->maybe_refresh_php_block();
 		}
 
-		$s = Uaip_Sfw_Settings::all();
+		$s       = Uaip_Sfw_Settings::all();
+		$results = $health->results();
+		$score   = Uaip_Sfw_Site_Health::score( $results );
+
 		echo '<div class="wrap uaip-sfw-wrap">';
-		$this->header( __( 'Hardening', 'uaip-security-firewall' ), __( 'Lock down common attack surfaces', 'uaip-security-firewall' ), 'dashicons-admin-tools' );
+		$this->header( __( 'Hardening', 'uaip-security-firewall' ), __( 'Close the doors attackers try first', 'uaip-security-firewall' ), 'dashicons-admin-tools' );
+
+		// Checks.
+		echo '<div class="uaip-sfw-card uaip-sfw-checks">';
+		/* translators: 1: checks passed, 2: total checks */
+		echo '<h2><span class="dashicons dashicons-yes-alt"></span> ' . esc_html( sprintf( __( '%1$d of %2$d security checks pass', 'uaip-security-firewall' ), $score['passed'], $score['total'] ) ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'The same checks appear in Tools → Site Health.', 'uaip-security-firewall' ) . '</p><ul class="uaip-sfw-check-list">';
+		foreach ( $results as $r ) {
+			$icon = 'good' === $r['status'] ? 'dashicons-yes-alt' : ( 'critical' === $r['status'] ? 'dashicons-dismiss' : 'dashicons-warning' );
+			echo '<li class="uaip-sfw-check uaip-sfw-check-' . esc_attr( $r['status'] ) . '"><span class="dashicons ' . esc_attr( $icon ) . '"></span><div><strong>' . esc_html( $r['label'] ) . '</strong><p>' . esc_html( $r['description'] ) . '</p>';
+			if ( 'good' !== $r['status'] && ! empty( $r['action_url'] ) ) {
+				echo '<a href="' . esc_url( $r['action_url'] ) . '">' . esc_html( $r['action_label'] ) . '</a>';
+			}
+			echo '</div></li>';
+		}
+		echo '</ul></div>';
+
+		// Toggles.
 		echo '<form method="post"><div class="uaip-sfw-card uaip-sfw-set-group">';
 		wp_nonce_field( 'uaip_sfw_hardening' );
-		echo '<h2><span class="dashicons dashicons-shield"></span> ' . esc_html__( 'Recommended actions', 'uaip-security-firewall' ) . '</h2>';
+		echo '<h2><span class="dashicons dashicons-shield"></span> ' . esc_html__( 'Hardening options', 'uaip-security-firewall' ) . '</h2>';
 		foreach ( $harden->actions() as $key => $a ) {
 			$this->switch_field( $key, $a['label'], $a['desc'], ! empty( $s[ $key ] ) );
 		}
 		echo '<p>';
-		submit_button( __( 'Apply hardening', 'uaip-security-firewall' ), 'primary button-hero', 'uaip_sfw_harden_save', false );
-		echo '</p></div></form></div>';
+		submit_button( __( 'Save hardening', 'uaip-security-firewall' ), 'primary', 'uaip_sfw_harden_save', false );
+		echo '</p></div></form>';
+
+		// Uploads test.
+		$probe = $harden->last_probe();
+		echo '<div class="uaip-sfw-card"><h2>' . esc_html__( 'Test the uploads folder', 'uaip-security-firewall' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Places a harmless PHP file in uploads, requests it, and deletes it straight away. If it runs, any uploaded script could too.', 'uaip-security-firewall' ) . '</p>';
+		if ( $probe ) {
+			$msg = array(
+				'blocked' => __( 'Scripts do not run in uploads.', 'uaip-security-firewall' ),
+				'runs'    => __( 'Scripts RUN in uploads. Turn on "Stop scripts running in uploads", or add the server rule below.', 'uaip-security-firewall' ),
+				'unknown' => __( 'The test could not reach the site from the server (loopback requests may be blocked). Check by hand with the rule below.', 'uaip-security-firewall' ),
+			);
+			$cls = 'blocked' === $probe['result'] ? 'success' : ( 'runs' === $probe['result'] ? 'error' : 'warning' );
+			/* translators: %s: time since the test */
+			echo '<div class="notice notice-' . esc_attr( $cls ) . ' inline"><p>' . esc_html( $msg[ $probe['result'] ] ) . ' <span class="description">' . esc_html( sprintf( __( 'Tested %s ago.', 'uaip-security-firewall' ), human_time_diff( (int) $probe['ts'] ) ) ) . '</span></p></div>';
+		}
+		echo '<form method="post">';
+		wp_nonce_field( 'uaip_sfw_hardening' );
+		echo '<button type="submit" name="uaip_sfw_probe_uploads" value="1" class="button">' . esc_html__( 'Run the test', 'uaip-security-firewall' ) . '</button></form>';
+		if ( ! $health->server_reads_htaccess() ) {
+			echo '<p>' . esc_html__( 'This server does not seem to read .htaccess files (for example nginx). Ask your host to add a rule like this:', 'uaip-security-firewall' ) . '</p>';
+			$path = wp_parse_url( wp_upload_dir()['baseurl'], PHP_URL_PATH );
+			echo '<pre class="uaip-sfw-snippet">' . esc_html( 'location ~* ^' . untrailingslashit( (string) $path ) . '/.*\.(php[0-9]?|phtml|phar|pht|phps)(\.|$) {' . "\n    deny all;\n}" ) . '</pre>';
+		}
+		echo '</div></div>';
 	}
 
 	/**
@@ -1039,7 +1094,7 @@ class Uaip_Sfw_Admin {
 		echo '<p>' . esc_html( $grade['hint'] ) . '</p>';
 		printf(
 			'<a class="button button-primary" href="%s">%s</a>',
-			esc_url( admin_url( 'admin.php?page=uaip-sfw-settings' ) ),
+			esc_url( admin_url( 'admin.php?page=uaip-sfw-hardening' ) ),
 			esc_html__( 'Improve my score', 'uaip-security-firewall' )
 		);
 		echo '</div></div>';
@@ -1200,25 +1255,13 @@ class Uaip_Sfw_Admin {
 	 * @return int
 	 */
 	private function security_score( $modules, $connected ) {
-		// Weighted contributions for the core (non-Pro) protections.
-		$weights = array(
-			'waf'       => 25,
-			'scan'      => 20,
-			'login'     => 15,
-			'twofa'     => 15,
-			'hardening' => 10,
-			'audit'     => 5,
-		);
-		$score = 0;
-		foreach ( $modules as $m ) {
-			if ( isset( $weights[ $m['key'] ] ) && $m['on'] ) {
-				$score += $weights[ $m['key'] ];
-			}
+		// The share of security checks that pass (see Uaip_Sfw_Site_Health).
+		$health = $this->plugin->module( 'site_health' );
+		if ( ! $health ) {
+			return 0;
 		}
-		if ( $connected ) {
-			$score += 10; // cloud alerts active
-		}
-		return min( 100, $score );
+		$score = Uaip_Sfw_Site_Health::score( $health->results() );
+		return $score['percent'];
 	}
 
 	/** Map a score to a grade band. */

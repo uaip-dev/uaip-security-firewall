@@ -30,7 +30,11 @@ class Uaip_Sfw_Settings {
 			'waf_extended'           => false,      // auto_prepend extended protection
 			'rate_limit_rpm'         => 240,        // max requests/min per IP (0 = off)
 			'login_breached_pw'      => true,
+			'harden_disable_editor'  => false,
 			'harden_hide_version'    => false,
+			'harden_hide_users'      => false,
+			'harden_headers'         => false,
+			'harden_hsts'            => false,
 			'harden_block_php_uploads' => false,
 			'harden_disable_xmlrpc'  => false,
 			'geo_enabled'            => false,          // Pro

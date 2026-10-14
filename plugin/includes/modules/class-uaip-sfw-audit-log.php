@@ -284,6 +284,10 @@ class Uaip_Sfw_Audit_Log {
 		if ( 'uaip_sfw_2fa_invalid' === $code ) {
 			return; // Recorded as twofa_failed by the two-step module.
 		}
+		if ( 'uaip_sfw_bad_login' === $code ) {
+			$data = $error->get_error_data();
+			$code = is_array( $data ) && isset( $data['reason'] ) ? $data['reason'] : $code;
+		}
 		$this->record( 'login_failed', array( 'reason' => sanitize_key( (string) $code ) ), sanitize_user( (string) $username, true ), 0 );
 	}
 
